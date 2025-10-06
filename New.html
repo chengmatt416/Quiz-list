@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>考卷清單 (God Mode)</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <title>考卷清單 (終極版)</title>
     <style>
         :root {
             --bg-color: #f4f7f6;
@@ -14,12 +12,9 @@
             --primary-color: #3498db;
             --secondary-color: #ecf0f1;
             --accent-color: #e74c3c;
-            --border-color: #ddd;
+            --border-color: #eee;
             --header-color: #2c3e50;
             --shadow-color: rgba(0,0,0,0.1);
-            --priority-high: #e74c3c;
-            --priority-medium: #f39c12;
-            --priority-low: #2ecc71;
         }
 
         body.dark-mode {
@@ -39,12 +34,11 @@
             line-height: 1.6;
             background-color: var(--bg-color);
             color: var(--text-color);
-            max-width: 900px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             transition: background-color 0.3s, color 0.3s;
         }
-
         .container {
             background-color: var(--container-bg);
             padding: 2rem;
@@ -52,372 +46,144 @@
             box-shadow: 0 4px 6px var(--shadow-color);
             transition: background-color 0.3s;
         }
-
-        h1, h2, h3 {
-            color: var(--header-color);
-        }
-
-        h1 {
-            border-bottom: 2px solid var(--primary-color);
-            padding-bottom: 10px;
-        }
-
-        .filters, .toolbar {
+        h1, h2, h3 { color: var(--header-color); }
+        h1 { border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; }
+        
+        .toolbar {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 1.5rem;
         }
-
-        .filters input, .filters select, .toolbar input, .toolbar select {
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            font-size: 1em;
-            background-color: var(--container-bg);
-            color: var(--text-color);
-        }
-
         #search-box {
-            flex-grow: 1;
+            padding: 10px; border: 1px solid var(--border-color); border-radius: 5px;
+            font-size: 1em; flex-grow: 1; background-color: var(--container-bg); color: var(--text-color);
         }
-
-        .action-btn, .theme-toggle {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            color: white;
-            background-color: var(--primary-color);
-            transition: background-color 0.2s;
-            white-space: nowrap;
+        .sort-controls button, .theme-toggle {
+            padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;
+            background-color: var(--primary-color); color: white; transition: background-color 0.2s;
         }
-
-        .action-btn:hover, .theme-toggle:hover {
-            background-color: #2980b9;
-        }
+        .sort-controls button:hover, .theme-toggle:hover { background-color: #2980b9; }
 
         .exam-group h3 {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 1.5rem;
+            background-color: var(--primary-color); color: white; padding: 10px;
+            border-radius: 5px; margin-top: 1.5rem;
         }
-
-        .exam-list {
-            list-style: none;
-            padding: 0;
-        }
-
+        .exam-list { list-style: none; padding: 0; }
         .exam-item {
-            display: flex;
-            align-items: center;
-            padding: 10px;
+            display: flex; align-items: center; padding: 15px 10px;
             border-bottom: 1px solid var(--border-color);
-            transition: background-color 0.2s;
-            gap: 10px;
+            transition: background-color 0.2s, opacity 0.3s;
+        }
+        .exam-item:hover { background-color: rgba(0,0,0,0.05); }
+        .exam-item.completed .chapter { text-decoration: line-through; opacity: 0.6; }
+
+        .exam-item input[type="checkbox"] { margin-right: 15px; transform: scale(1.5); cursor: pointer; }
+        .exam-info { flex-grow: 1; }
+        .chapter { transition: text-decoration 0.3s, opacity 0.3s; }
+        .question-count { font-weight: bold; font-size: 1.1em; color: var(--accent-color); min-width: 50px; text-align: right; }
+        
+        .delete-btn {
+            background: none; border: none; color: var(--accent-color); font-size: 1.5em;
+            cursor: pointer; opacity: 0.5; transition: opacity 0.2s; padding: 0 10px;
+        }
+        .exam-item:hover .delete-btn { opacity: 1; }
+
+        .summary, .add-exam-form {
+            margin-top: 2rem; padding: 1.5rem; background-color: var(--secondary-color);
+            border-radius: 8px; border-left: 5px solid var(--primary-color);
+        }
+        .progress-bar-container { background-color: #ddd; border-radius: 5px; overflow: hidden; margin-bottom: 1rem; }
+        .progress-bar {
+            height: 20px; width: 0%; background-color: #27ae60;
+            transition: width 0.5s ease-in-out; text-align: center;
+            color: white; line-height: 20px; font-weight: bold;
         }
         
-        .exam-item:hover {
-            background-color: rgba(0,0,0,0.05);
+        .add-exam-form form { display: flex; flex-wrap: wrap; gap: 10px; }
+        .add-exam-form input {
+            padding: 10px; border: 1px solid var(--border-color); border-radius: 5px;
+            background-color: var(--container-bg); color: var(--text-color);
         }
+        .add-exam-form input[type="text"] { flex: 2 1 120px; }
+        .add-exam-form input[type="number"] { flex: 1 1 80px; }
+        .add-exam-form button { flex: 1 1 80px; background-color: #27ae60; color: white; border: none; cursor: pointer; border-radius: 5px; }
 
-        .exam-item.completed .editable {
-            text-decoration: line-through;
-            opacity: 0.6;
-        }
-
-        .priority-indicator {
-            width: 6px;
-            align-self: stretch;
-            border-radius: 3px;
-        }
-
-        .exam-info {
-            flex-grow: 1;
-            display: grid;
-            grid-template-columns: 3fr 2fr 1fr;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .editable {
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 3px;
-            position: relative;
-        }
-
-        .editable:hover::after {
-            content: '✏️';
-            position: absolute;
-            right: -5px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 0.8em;
-        }
-
-        .item-actions {
-            display: flex;
-            align-items: center;
-        }
-
-        .action-icon-btn {
-            background: none;
-            border: none;
-            font-size: 1.3em;
-            cursor: pointer;
-            opacity: 0.6;
-            transition: opacity 0.2s, transform 0.2s;
-            padding: 5px;
-        }
-        .action-icon-btn:hover {
-            opacity: 1;
-            transform: scale(1.2);
-        }
-
-        .delete-btn { color: var(--accent-color); }
-        .notes-btn { color: var(--primary-color); }
-
-        .due-date {
-            font-size: 0.8em;
-            color: #888;
-            white-space: nowrap;
-        }
-        body.dark-mode .due-date { color: #bbb; }
-        .due-date.urgent { color: var(--accent-color); font-weight: bold; }
-
-        .summary, .form-section, .data-management {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background-color: var(--secondary-color);
-            border-radius: 8px;
-            border-left: 5px solid var(--primary-color);
-        }
-
-        .progress-bar-container {
-            background-color: #ddd;
-            border-radius: 5px;
-            overflow: hidden;
-            margin-bottom: 1rem;
-        }
-
-        .progress-bar {
-            height: 20px;
-            width: 0%;
-            background-color: #27ae60;
-            transition: width 0.5s ease-in-out;
-            text-align: center;
-            color: white;
-            line-height: 20px;
-            font-weight: bold;
-        }
-
-        .form-section form {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .form-section input, .form-section select, .form-section button {
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            background-color: var(--container-bg);
-            color: var(--text-color);
-        }
-        .form-section button { background-color: #27ae60; color: white; border: none; cursor: pointer; }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.6);
-        }
-        .modal-content {
-            background-color: var(--container-bg);
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid var(--border-color);
-            width: 80%;
-            max-width: 600px;
-            border-radius: 8px;
-            position: relative;
-        }
-        .close-btn {
-            color: #aaa;
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .close-btn:hover { color: var(--text-color); }
-
-        #undo-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #333;
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            z-index: 1001;
-            cursor: pointer;
-            transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(20px);
-        }
-        #undo-container.show {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-
-        #motivational-quote {
-            text-align: center;
-            font-style: italic;
-            padding: 10px;
-            background-color: var(--secondary-color);
-            border-radius: 5px;
-            margin-bottom: 1rem;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <h1>考卷清單 (God Mode)</h1>
-            <button class="theme-toggle action-btn" id="theme-toggle">切換主題</button>
+            <h1>考卷清單 (終極版)</h1>
+            <button class="theme-toggle" id="theme-toggle">切換主題</button>
         </div>
-
-        <div id="motivational-quote"></div>
-
-        <div class="filters">
-            <input type="text" id="search-box" placeholder="搜尋科目或章節...">
-            <select id="filter-status">
-                <option value="all">全部狀態</option>
-                <option value="completed">已完成</option>
-                <option value="incomplete">未完成</option>
-            </select>
-            <select id="filter-priority">
-                <option value="all">全部優先級</option>
-                <option value="High">高</option>
-                <option value="Medium">中</option>
-                <option value="Low">低</option>
-            </select>
-        </div>
-        
         <div class="toolbar">
-            <button class="action-btn" id="bulk-delete">刪除選取</button>
-            <button class="action-btn" id="bulk-complete">完成選取</button>
-            <button class="action-btn" id="stats-modal-btn">查看統計</button>
+            <input type="text" id="search-box" placeholder="搜尋科目或章節...">
+            <div class="sort-controls">
+                <button id="sort-by-questions">按題數排序</button>
+                <button id="sort-by-chapter">按章節排序</button>
+            </div>
         </div>
-
         <div class="summary">
             <h2>進度總結</h2>
-            <div class="progress-bar-container"><div class="progress-bar" id="progress-bar">0%</div></div>
-            <p>未完成: <span id="remaining-questions">0</span> 題 | 已完成: <span id="completed-questions">0</span> 題</p>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar">0%</div>
+            </div>
+            <p>尚未完成總題數: <span id="remaining-questions">0</span></p>
+            <p>已經完成總題數: <span id="completed-questions">0</span></p>
         </div>
         
         <div id="exam-list-container"></div>
-        
-        <div class="form-section">
+
+        <div class="add-exam-form">
             <h2>新增考卷</h2>
             <form id="add-form">
                 <input type="text" id="new-subject" placeholder="科目" required>
                 <input type="text" id="new-chapter" placeholder="章節" required>
                 <input type="number" id="new-questions" placeholder="題數" required min="1">
-                <select id="new-priority">
-                    <option value="Medium">中優先級</option>
-                    <option value="High">高優先級</option>
-                    <option value="Low">低優先級</option>
-                </select>
-                <input type="date" id="new-due-date" title="到期日">
                 <button type="submit">新增</button>
             </form>
         </div>
-
-        <div class="data-management">
-            <h2>資料管理</h2>
-            <button class="action-btn" id="export-json">匯出 JSON</button>
-            <button class="action-btn" id="export-csv">匯出 CSV</button>
-            <input type="file" id="import-file" accept=".json,.csv" style="display: none;">
-            <button class="action-btn" id="import-btn">匯入檔案</button>
-        </div>
     </div>
-
-    <div id="undo-container">點此復原</div>
-
-    <div id="stats-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>學習統計</h2>
-            <canvas id="progress-chart"></canvas>
-            <canvas id="subject-chart"></canvas>
-        </div>
-    </div>
-    
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // --- INITIAL DATA (from user's CSV) ---
         const initialData = [
-            { id: 1, subject: "數", chapter: "1-3", questions: 70, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 2, subject: "數", chapter: "1-4", questions: 70, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 3, subject: "數", chapter: "2-1", questions: 70, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 4, subject: "數", chapter: "2-2", questions: 70, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 5, subject: "地", chapter: "L1", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 6, subject: "地", chapter: "L2", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 7, subject: "歷", chapter: "L1", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 8, subject: "歷", chapter: "L2", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 9, subject: "公", chapter: "L1", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 10, subject: "公", chapter: "L2", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 11, subject: "國", chapter: "L3", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 12, subject: "國", chapter: "L4", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 13, subject: "國", chapter: "語文天地", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 14, subject: "國", chapter: "自學1", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 15, subject: "理", chapter: "1-1&1-2", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 16, subject: "理", chapter: "1-3", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 17, subject: "理", chapter: "1-4", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 18, subject: "理", chapter: "2-1&2-2", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 19, subject: "理", chapter: "1-1&1-2", questions: 80, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 20, subject: "理", chapter: "1-3&1-4", questions: 80, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 21, subject: "歷", chapter: "L1", questions: 70, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 22, subject: "歷", chapter: "L2", questions: 70, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 23, subject: "地", chapter: "L1", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 24, subject: "地", chapter: "L2", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 25, subject: "公", chapter: "L1", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 26, subject: "公", chapter: "L2", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 27, subject: "歷", chapter: "L1", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null },
-            { id: 28, subject: "歷", chapter: "L2", questions: 50, completed: false, priority: 'Medium', notes: '', dueDate: null }
+            { id: 1, subject: "數", chapter: "1-3", questions: 70, completed: false },
+            { id: 2, subject: "數", chapter: "1-4", questions: 70, completed: false },
+            { id: 3, subject: "數", chapter: "2-1", questions: 70, completed: false },
+            { id: 4, subject: "數", chapter: "2-2", questions: 70, completed: false },
+            { id: 5, subject: "地", chapter: "L1", questions: 50, completed: false },
+            { id: 6, subject: "地", chapter: "L2", questions: 50, completed: false },
+            { id: 7, subject: "歷", chapter: "L1", questions: 50, completed: false },
+            { id: 8, subject: "歷", chapter: "L2", questions: 50, completed: false },
+            { id: 9, subject: "公", chapter: "L1", questions: 50, completed: false },
+            { id: 10, subject: "公", chapter: "L2", questions: 50, completed: false },
+            { id: 11, subject: "國", chapter: "L3", questions: 50, completed: false },
+            { id: 12, subject: "國", chapter: "L4", questions: 50, completed: false },
+            { id: 13, subject: "國", chapter: "語文天地", questions: 50, completed: false },
+            { id: 14, subject: "國", chapter: "自學1", questions: 50, completed: false },
+            { id: 15, subject: "理", chapter: "1-1&1-2", questions: 50, completed: false },
+            { id: 16, subject: "理", chapter: "1-3", questions: 50, completed: false },
+            { id: 17, subject: "理", chapter: "1-4", questions: 50, completed: false },
+            { id: 18, subject: "理", chapter: "2-1&2-2", questions: 50, completed: false },
+            { id: 19, subject: "理", chapter: "1-1&1-2", questions: 80, completed: false },
+            { id: 20, subject: "理", chapter: "1-3&1-4", questions: 80, completed: false },
+            { id: 21, subject: "歷", chapter: "L1", questions: 70, completed: false },
+            { id: 22, subject: "歷", chapter: "L2", questions: 70, completed: false },
+            { id: 23, subject: "地", chapter: "L1", questions: 50, completed: false },
+            { id: 24, subject: "地", chapter: "L2", questions: 50, completed: false },
+            { id: 25, subject: "公", chapter: "L1", questions: 50, completed: false },
+            { id: 26, subject: "公", chapter: "L2", questions: 50, completed: false },
+            { id: 27, subject: "歷", chapter: "L1", questions: 50, completed: false },
+            { id: 28, subject: "歷", chapter: "L2", questions: 50, completed: false }
         ];
-        
+
         let exams = [];
-        let lastDeleted = null;
-        let undoTimeout = null;
-        let progressChart = null;
-        let subjectChart = null;
+        let sortState = { key: 'chapter', direction: 'asc' };
 
-        const quotes = [
-            "學如逆水行舟，不進則退。", 
-            "書山有路勤為徑，學海無涯苦作舟。", 
-            "天才就是99%的汗水加上1%的靈感。",
-            "今日事，今日畢。",
-            "成功不是偶然，而是努力的必然結果。"
-        ];
-
-        // --- DOM ELEMENTS ---
-        const elements = {
+        const G_ELEMENTS = {
             container: document.getElementById('exam-list-container'),
             remainingEl: document.getElementById('remaining-questions'),
             completedEl: document.getElementById('completed-questions'),
@@ -425,29 +191,17 @@
             searchBox: document.getElementById('search-box'),
             addForm: document.getElementById('add-form'),
             themeToggle: document.getElementById('theme-toggle'),
-            filterStatus: document.getElementById('filter-status'),
-            filterPriority: document.getElementById('filter-priority'),
-            bulkDeleteBtn: document.getElementById('bulk-delete'),
-            bulkCompleteBtn: document.getElementById('bulk-complete'),
-            statsModalBtn: document.getElementById('stats-modal-btn'),
-            statsModal: document.getElementById('stats-modal'),
-            modalCloseBtn: document.querySelector('#stats-modal .close-btn'),
-            undoContainer: document.getElementById('undo-container'),
-            exportJsonBtn: document.getElementById('export-json'),
-            exportCsvBtn: document.getElementById('export-csv'),
-            importBtn: document.getElementById('import-btn'),
-            importFile: document.getElementById('import-file'),
-            quoteEl: document.getElementById('motivational-quote'),
+            sortByQuestionsBtn: document.getElementById('sort-by-questions'),
+            sortByChapterBtn: document.getElementById('sort-by-chapter'),
         };
 
-        // --- CORE FUNCTIONS ---
         function saveExams() {
             localStorage.setItem('examsList', JSON.stringify(exams));
         }
 
         function loadExams() {
             const storedExams = localStorage.getItem('examsList');
-            if (storedExams && storedExams !== '[]') {
+            if (storedExams) {
                 exams = JSON.parse(storedExams);
             } else {
                 exams = initialData;
@@ -455,28 +209,28 @@
         }
 
         function render() {
-            elements.container.innerHTML = '';
-            const searchTerm = elements.searchBox.value.toLowerCase();
-            const statusFilter = elements.filterStatus.value;
-            const priorityFilter = elements.filterPriority.value;
+            G_ELEMENTS.container.innerHTML = '';
+            const searchTerm = G_ELEMENTS.searchBox.value.toLowerCase();
 
-            const filteredExams = exams.filter(exam => {
-                const searchMatch = exam.subject.toLowerCase().includes(searchTerm) || 
-                                    exam.chapter.toLowerCase().includes(searchTerm);
-                const statusMatch = statusFilter === 'all' || 
-                                    (statusFilter === 'completed' && exam.completed) || 
-                                    (statusFilter === 'incomplete' && !exam.completed);
-                const priorityMatch = priorityFilter === 'all' || exam.priority === priorityFilter;
-                return searchMatch && statusMatch && priorityMatch;
-            });
+            const filteredExams = exams.filter(exam => 
+                exam.subject.toLowerCase().includes(searchTerm) || 
+                exam.chapter.toLowerCase().includes(searchTerm)
+            );
 
             const groupedExams = filteredExams.reduce((acc, exam) => {
                 (acc[exam.subject] = acc[exam.subject] || []).push(exam);
                 return acc;
             }, {});
 
-            if (Object.keys(groupedExams).length === 0) {
-                 elements.container.innerHTML = '<p style="text-align:center; padding: 20px;">沒有找到符合條件的考卷。</p>';
+            for (const subject in groupedExams) {
+                groupedExams[subject].sort((a, b) => {
+                    const valA = a[sortState.key];
+                    const valB = b[sortState.key];
+                    let comparison = 0;
+                    if (valA > valB) { comparison = 1; } 
+                    else if (valA < valB) { comparison = -1; }
+                    return sortState.direction === 'desc' ? (comparison * -1) : comparison;
+                });
             }
 
             for (const subject of Object.keys(groupedExams).sort()) {
@@ -490,17 +244,110 @@
                     const li = document.createElement('li');
                     li.className = 'exam-item';
                     if (exam.completed) li.classList.add('completed');
-                    
-                    const priorityClass = `priority-${exam.priority.toLowerCase()}`;
+                    li.innerHTML = `
+                        <input type="checkbox" data-id="${exam.id}" ${exam.completed ? 'checked' : ''}>
+                        <div class="exam-info">
+                            <span class="chapter">${exam.chapter}</span>
+                        </div>
+                        <div class="question-count">${exam.questions} 題</div>
+                        <button class="delete-btn" data-id="${exam.id}">&times;</button>
+                    `;
+                    ul.appendChild(li);
+                });
+                groupDiv.appendChild(ul);
+                G_ELEMENTS.container.appendChild(groupDiv);
+            }
+            updateSummary();
+        }
 
-                    let dueDateHTML = '';
-                    if (exam.dueDate) {
-                        const dueDate = new Date(exam.dueDate);
-                        const today = new Date();
-                        today.setHours(0,0,0,0); // Normalize today's date
-                        const diffTime = dueDate.getTime() - today.getTime();
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        
-                        let dueClass = 'due-date';
-                        let dueText = `到期日: ${exam.dueDate}`;
-                
+        function updateSummary() {
+            let remainingTotal = 0, completedTotal = 0, totalQuestions = 0;
+            exams.forEach(exam => {
+                totalQuestions += exam.questions;
+                if (exam.completed) completedTotal += exam.questions;
+                else remainingTotal += exam.questions;
+            });
+            G_ELEMENTS.remainingEl.textContent = remainingTotal;
+            G_ELEMENTS.completedEl.textContent = completedTotal;
+            const percentage = totalQuestions > 0 ? ((completedTotal / totalQuestions) * 100).toFixed(0) : 0;
+            G_ELEMENTS.progressBar.style.width = percentage + '%';
+            G_ELEMENTS.progressBar.textContent = percentage + '%';
+        }
+
+        function toggleExam(id) {
+            const exam = exams.find(e => e.id === id);
+            if (exam) {
+                exam.completed = !exam.completed;
+                saveExams();
+                render();
+            }
+        }
+
+        function deleteExam(id) {
+            exams = exams.filter(e => e.id !== id);
+            saveExams();
+            render();
+        }
+
+        function addExam(e) {
+            e.preventDefault();
+            const subject = document.getElementById('new-subject').value.trim();
+            const chapter = document.getElementById('new-chapter').value.trim();
+            const questions = parseInt(document.getElementById('new-questions').value);
+            
+            if (subject && chapter && questions > 0) {
+                const newExam = {
+                    id: Date.now(), // Unique ID
+                    subject, chapter, questions, completed: false
+                };
+                exams.push(newExam);
+                saveExams();
+                render();
+                G_ELEMENTS.addForm.reset();
+            }
+        }
+
+        function applyTheme(theme) {
+            if (theme === 'dark') document.body.classList.add('dark-mode');
+            else document.body.classList.remove('dark-mode');
+            localStorage.setItem('theme', theme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(currentTheme === 'light' ? 'dark' : 'light');
+        }
+
+        G_ELEMENTS.container.addEventListener('click', e => {
+            if (e.target.type === 'checkbox') {
+                toggleExam(parseInt(e.target.dataset.id));
+            }
+            if (e.target.classList.contains('delete-btn')) {
+                deleteExam(parseInt(e.target.dataset.id));
+            }
+        });
+        
+        G_ELEMENTS.searchBox.addEventListener('input', render);
+        G_ELEMENTS.addForm.addEventListener('submit', addExam);
+        G_ELEMENTS.themeToggle.addEventListener('click', toggleTheme);
+
+        G_ELEMENTS.sortByQuestionsBtn.addEventListener('click', () => {
+            sortState.key = 'questions';
+            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+            render();
+        });
+
+        G_ELEMENTS.sortByChapterBtn.addEventListener('click', () => {
+            sortState.key = 'chapter';
+            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+            render();
+        });
+
+        // Initial Load
+        loadExams();
+        applyTheme(localStorage.getItem('theme') || 'light');
+        render();
+    });
+    </script>
+</body>
+</html>
