@@ -39,6 +39,7 @@
             color:var(--text-color);
             margin:0;
             padding:20px;
+            padding-bottom: 160px;
             display:flex;
             justify-content:center;
             transition:background .25s,color .25s;
@@ -132,7 +133,6 @@
         .due-date.overdue{background:linear-gradient(90deg,#f9e0e0,#fde6e6); color:var(--accent-color); font-weight:700}
         .exam-actions{display:flex;gap:8px;align-items:center;margin-left:12px}
         
-        /* MODIFIED: Explicitly set color to white to override .small class */
         .exam-actions .icon-btn {
             padding: 4px 8px;
             font-size: 12px;
@@ -186,7 +186,10 @@
         .pom-close-btn:hover { color: var(--text-color); }
 
         @media (max-width:720px){
-            body { padding: 10px; }
+            body { 
+                padding: 10px; 
+                padding-bottom: 160px;
+            }
             .container { padding: 15px; }
             .summary{grid-template-columns:1fr}
             .top-actions{flex-wrap:wrap}
@@ -532,9 +535,7 @@
         }
 
         function pad(n){ return String(n).padStart(2,'0'); }
-        function toICSDatetime(dateObj){
-            return `${dateObj.getFullYear()}${pad(dateObj.getMonth()+1)}${pad(dateObj.getDate())}`;
-        }
+        
         function downloadFile(filename, content, mime='text/calendar;charset=utf-8'){
             const blob = new Blob([content], { type: mime });
             const url = URL.createObjectURL(blob);
@@ -544,12 +545,27 @@
             a.remove(); URL.revokeObjectURL(url);
         }
 
+        // MODIFIED: Rewritten ICS date logic to be timezone-proof
         function createICSForExam(exam) {
             const e = {...exam};
-            if (!e.dueDate) e.dueDate = new Date().toISOString().slice(0, 10);
-            const dt = new Date(e.dueDate + 'T00:00:00');
-            const dtStart = toICSDatetime(dt);
-            const dtEnd = toICSDatetime(new Date(dt.getTime() + 24 * 3600 * 1000));
+            if (!e.dueDate) {
+                // If no due date, default to today's date
+                const today = new Date();
+                e.dueDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+            }
+
+            // Directly format the start date string to avoid local time parsing issues
+            const dtStart = e.dueDate.replace(/-/g, '');
+
+            // To get the next day for DTEND, parse the date as UTC
+            const dateParts = e.dueDate.split('-').map(part => parseInt(part, 10));
+            const startDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+            
+            // Add one day in UTC
+            startDateObj.setUTCDate(startDateObj.getUTCDate() + 1);
+
+            // Format the end date from the UTC object
+            const dtEnd = `${startDateObj.getUTCFullYear()}${pad(startDateObj.getUTCMonth() + 1)}${pad(startDateObj.getUTCDate())}`;
             
             const summary = `到期：${e.subject} ${e.chapter} (${e.questions} 題)`;
             const description = `考卷到期：${e.subject} ${e.chapter}\\n題數：${e.questions}\\n來源：考卷清單`;
@@ -569,7 +585,7 @@
             return icsEvent;
         }
 
-        function escapeICSText(s){ return (s||'').replace(/\\n/g,'\\\\n').replace(/,/g,'\\\\,').replace(/;/g, '\\\\;'); }
+        function escapeICSText(s){ return (s||'').replace(/\\/g, '\\\\').replace(/,/g,'\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n'); }
         
         function downloadICS(exam){
             const icsEvent = createICSForExam(exam);
