@@ -63,13 +63,13 @@
         h1{margin:0 0 6px 0; color:var(--header-color);}
         .top-actions{display:flex; gap:8px;}
         button, .icon-btn{
-            padding: 6px 10px; /* MODIFIED: Made buttons smaller */
-            font-size: 14px; /* MODIFIED: Made button text smaller */
+            padding: 6px 10px;
+            font-size: 14px;
             border-radius:8px;
             border:none;
             cursor:pointer;
             background:var(--primary-color);
-            color:white; /* MODIFIED: Ensured text is white */
+            color:white;
             font-weight:600;
             box-shadow:0 6px 18px rgba(0,0,0,0.06);
             transition:transform .12s, box-shadow .12s, opacity .12s;
@@ -77,8 +77,8 @@
         button:active{transform:translateY(1px)}
         .icon-btn{display:inline-flex;align-items:center;gap:8px}
         .theme-toggle{
-            background: #7f8c8d; /* MODIFIED: Changed background to a solid color */
-            color: white; /* MODIFIED: Ensured text is white */
+            background: #7f8c8d;
+            color: white;
         }
         .toolbar{
             display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 18px 0;align-items:center;
@@ -92,8 +92,6 @@
             padding:16px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
             border:1px solid var(--border-color); margin-top:14px;
         }
-
-        /* summary */
         .summary{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center}
         .progress-bar-container{background:#ddd;border-radius:999px;overflow:hidden;height:18px;box-shadow:inset 0 -2px 6px rgba(0,0,0,0.06)}
         .progress-bar{
@@ -102,8 +100,6 @@
             will-change:width;
         }
         .summary p{margin:6px 0 0 0;color:var(--muted);font-size:14px}
-
-        /* exam list */
         .exam-group h3{
             background:var(--primary-color);color:white;padding:8px;border-radius:8px;margin:14px 0 8px 0;
             display:inline-block; font-size:16px;
@@ -131,28 +127,25 @@
         .delete-btn{background:none;border:none;color:var(--accent-color);font-size:20px;cursor:pointer;opacity:.6}
         .delete-btn:hover{opacity:1;transform:scale(1.06)}
         .correction-control{display:flex;align-items:center;gap:6px; font-size:13px;color:var(--muted); margin-left:12px}
-
         .exam-item.completed .chapter{ text-decoration:line-through; opacity:0.6 }
         .due-date{font-size:13px;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,0.03); color:var(--muted); margin-left:8px}
         .due-date.overdue{background:linear-gradient(90deg,#f9e0e0,#fde6e6); color:var(--accent-color); font-weight:700}
         .exam-actions{display:flex;gap:8px;align-items:center;margin-left:12px}
-
-        /* hover micro animations (scale up slightly) */
+        .exam-actions .icon-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
         .exam-item:hover{transform:translateY(-4px) scale(1.005); box-shadow:0 10px 30px rgba(0,0,0,0.06)}
-
-        /* progress micro animation */
         .progress-bar.animate {
             transition: width 900ms cubic-bezier(.18,.9,.32,1), background 400ms;
         }
-
-        /* add-form */
         .add-exam-form{margin-top:18px;padding:12px;border-radius:10px;border:1px dashed var(--border-color);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
         .add-exam-form input, .add-exam-form button, .add-exam-form select{padding:8px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)}
-        .add-exam-form input[type="number"]{width:110px}
-        .add-exam-form input[type="date"]{width:160px}
+        /* MODIFIED: Changed from fixed width to flexible */
+        .add-exam-form input { flex: 1 1 120px; }
+        .add-exam-form input[type="number"]{ flex: 1 1 80px; }
+        .add-exam-form button { flex: 1 1 80px; }
         .add-exam-form .submit{background:#27ae60;color:white;border:none}
-
-        /* small UI */
         .small{font-size:13px;color:var(--muted)}
         .muted{color:var(--muted)}
         .pill{padding:6px 10px;border-radius:999px;border:1px solid var(--border-color);font-size:13px}
@@ -164,6 +157,12 @@
             border:1px solid var(--border-color);
             transform: translateY(18px);
             animation: popIn 420ms cubic-bezier(.2,.9,.2,1) forwards;
+            transition: opacity .4s, transform .4s cubic-bezier(.2,.9,.2,1);
+        }
+        .pomodoro-panel.hidden {
+            opacity: 0;
+            transform: translateY(24px) scale(.98);
+            pointer-events: none;
         }
         @keyframes popIn{
             from{opacity:0; transform: translateY(24px) scale(.98)}
@@ -175,20 +174,20 @@
         .cycle-indicator{display:flex;gap:6px;justify-content:center;margin-top:8px}
         .cycle-dot{width:10px;height:10px;border-radius:50%;background:#ddd}
         .cycle-dot.active{background:var(--primary-color); box-shadow:0 6px 14px rgba(0,0,0,0.08)}
+        .pom-close-btn {
+            background: none; border: none; font-size: 22px;
+            color: var(--muted); cursor: pointer; padding: 0 4px; line-height: 1;
+        }
+        .pom-close-btn:hover { color: var(--text-color); }
 
-        /* responsive */
+        /* MODIFIED: Enhanced responsive styles */
         @media (max-width:720px){
+            body { padding: 10px; }
+            .container { padding: 15px; }
             .summary{grid-template-columns:1fr}
             .top-actions{flex-wrap:wrap}
+            .toolbar { flex-direction: column; align-items: stretch; }
             .pomodoro-panel{right:8px;left:8px;bottom:12px;width:auto}
-            
-            /* MODIFICATION: Make edit/ics buttons smaller on mobile */
-            .exam-item .edit-btn,
-            .exam-item .ics-btn {
-                padding: 4px 8px;
-                font-size: 12px;
-                color: white; /* Ensure text is white */
-            }
         }
     </style>
 </head>
@@ -201,6 +200,7 @@
                     <div class="small muted">到期日、匯出日曆 (.ics)、番茄鐘 — 已保留你的預設清單</div>
                 </div>
                 <div class="top-actions">
+                    <button id="show-pomodoro" class="icon-btn">顯示番茄鐘</button>
                     <button id="export-all-ics" class="icon-btn">匯出全部到日曆</button>
                     <button id="clear-storage" class="theme-toggle">清除本機資料</button>
                     <button id="theme-toggle" class="theme-toggle">切換深色</button>
@@ -267,6 +267,7 @@
                     <option value="short">短休</option>
                     <option value="long">長休</option>
                 </select>
+                <button id="pom-close" class="pom-close-btn" title="隱藏">&times;</button>
                 <button id="pom-start">開始</button>
             </div>
         </div>
@@ -284,45 +285,13 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
-        // -------------------------
-        // 初始資料（保留你原本清單，只加 dueDate: null）
-        // -------------------------
         const initialData = [
-            { id: 1, subject: "數", chapter: "1-3", questions: 70, completed: false, corrected: false, dueDate: null },
-            { id: 2, subject: "數", chapter: "1-4", questions: 70, completed: false, corrected: false, dueDate: null },
-            { id: 3, subject: "數", chapter: "2-1", questions: 70, completed: false, corrected: false, dueDate: null },
-            { id: 4, subject: "數", chapter: "2-2", questions: 70, completed: false, corrected: false, dueDate: null },
-            { id: 5, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 6, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 7, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 8, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 9, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 10, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 11, subject: "國", chapter: "L3", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 12, subject: "國", chapter: "L4", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 13, subject: "國", chapter: "語文天地", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 14, subject: "國", chapter: "自學1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 15, subject: "理", chapter: "1-1&1-2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 16, subject: "理", chapter: "1-3", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 17, subject: "理", chapter: "1-4", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 18, subject: "理", chapter: "2-1&2-2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 19, subject: "理", chapter: "1-1&1-2", questions: 80, completed: false, corrected: false, dueDate: null },
-            { id: 20, subject: "理", chapter: "1-3&1-4", questions: 80, completed: false, corrected: false, dueDate: null },
-            { id: 21, subject: "歷", chapter: "L1", questions: 70, completed: false, corrected: false, dueDate: null },
-            { id: 22, subject: "歷", chapter: "L2", questions: 70, completed: false, corrected: false, dueDate: null },
-            { id: 23, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 24, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 25, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 26, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 27, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 28, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }
+            { id: 1, subject: "數", chapter: "1-3", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 2, subject: "數", chapter: "1-4", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 3, subject: "數", chapter: "2-1", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 4, subject: "數", chapter: "2-2", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 5, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 6, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 7, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 8, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 9, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 10, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 11, subject: "國", chapter: "L3", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 12, subject: "國", chapter: "L4", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 13, subject: "國", chapter: "語文天地", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 14, subject: "國", chapter: "自學1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 15, subject: "理", chapter: "1-1&1-2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 16, subject: "理", chapter: "1-3", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 17, subject: "理", chapter: "1-4", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 18, subject: "理", chapter: "2-1&2-2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 19, subject: "理", chapter: "1-1&1-2", questions: 80, completed: false, corrected: false, dueDate: null }, { id: 20, subject: "理", chapter: "1-3&1-4", questions: 80, completed: false, corrected: false, dueDate: null }, { id: 21, subject: "歷", chapter: "L1", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 22, subject: "歷", chapter: "L2", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 23, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 24, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 25, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 26, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 27, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 28, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }
         ];
 
-        // state
         let exams = [];
         let sortState = { key: 'chapter', direction: 'asc' };
 
-        // element refs
         const G = {
             container: document.getElementById('exam-list-container'),
             remainingEl: document.getElementById('remaining-questions'),
@@ -343,6 +312,7 @@
             totalQuestionsEl: document.getElementById('total-questions'),
             themeToggle: document.getElementById('theme-toggle'),
             clearStorageBtn: document.getElementById('clear-storage'),
+            showPomodoroBtn: document.getElementById('show-pomodoro'),
             pom: {
                 panel: document.getElementById('pomodoro-panel'),
                 display: document.getElementById('timer-display'),
@@ -351,11 +321,11 @@
                 reset: document.getElementById('pom-reset'),
                 mode: document.getElementById('pom-mode'),
                 selected: document.getElementById('pom-selected'),
-                cycle: document.getElementById('pom-cycle')
+                cycle: document.getElementById('pom-cycle'),
+                close: document.getElementById('pom-close')
             }
         };
 
-        // localStorage helpers
         function saveExams(){ localStorage.setItem('examsList', JSON.stringify(exams)); }
         function loadExams(){
             const s = localStorage.getItem('examsList');
@@ -366,26 +336,21 @@
             }
         }
 
-        // render
         function render(){
             G.container.innerHTML = '';
             const q = G.searchBox.value.trim().toLowerCase();
-            // filter
             const filtered = exams.filter(exam =>
                 exam.subject.toLowerCase().includes(q) || exam.chapter.toLowerCase().includes(q)
             );
-            // group by subject
             const grouped = filtered.reduce((acc, exam) => {
                 (acc[exam.subject] = acc[exam.subject] || []).push(exam);
                 return acc;
             }, {});
-            // sort groups and items
             const subjectKeys = Object.keys(grouped).sort();
             subjectKeys.forEach(subject => {
                 const list = grouped[subject];
                 list.sort((a,b) => {
                     let va = a[sortState.key], vb = b[sortState.key];
-                    // for dueDate, nulls should go to the end
                     if(sortState.key === 'dueDate'){
                         if(!va && !vb) return 0;
                         if(!va) return sortState.direction === 'asc' ? 1 : -1;
@@ -411,13 +376,10 @@
                     const li = document.createElement('li');
                     li.className = 'exam-item';
                     if(exam.completed) li.classList.add('completed');
-
-                    // due date display
                     let dueHtml = '';
                     if(exam.dueDate){
                         const now = new Date();
                         const due = new Date(exam.dueDate);
-                        // clear time
                         const nowMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                         const dueMid = new Date(due.getFullYear(), due.getMonth(), due.getDate());
                         const diffDays = Math.round((dueMid - nowMid) / (24*3600*1000));
@@ -425,7 +387,6 @@
                         const label = overdue ? `已過期 ${Math.abs(diffDays)} 天` : (diffDays === 0 ? '到期：今天' : `到期：${diffDays} 天後`);
                         dueHtml = `<span class="due-date ${overdue ? 'overdue': ''}" title="${formatDate(due)}">${label}</span>`;
                     }
-
                     li.innerHTML = `
                         <div class="left">
                             <input type="checkbox" class="completion-checkbox" data-id="${exam.id}" ${exam.completed ? 'checked' : ''} />
@@ -437,7 +398,6 @@
                                 <div class="meta small muted">${escapeHtml(exam.subject)} ・ <span class="meta-questions">${exam.questions} 題</span></div>
                             </div>
                         </div>
-
                         <div class="exam-actions">
                             <label class="correction-control"><input type="checkbox" class="correction-checkbox" data-id="${exam.id}" ${exam.corrected ? 'checked' : ''} /> 訂正</label>
                             <button class="icon-btn edit-btn small" data-id="${exam.id}">編輯</button>
@@ -450,60 +410,33 @@
                 groupDiv.appendChild(ul);
                 G.container.appendChild(groupDiv);
             });
-
             updateSummary();
             attachRowListeners();
         }
 
         function attachRowListeners(){
-            // completion, correction, delete, edit, ics
-            document.querySelectorAll('.completion-checkbox').forEach(cb => {
-                cb.addEventListener('change', e => {
-                    const id = Number(cb.dataset.id);
-                    toggleExam(id);
-                });
-            });
-            document.querySelectorAll('.correction-checkbox').forEach(cb => {
-                cb.addEventListener('change', e => {
-                    const id = Number(cb.dataset.id);
-                    toggleCorrection(id);
-                });
-            });
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', e => {
-                    const id = Number(btn.dataset.id);
-                    deleteExam(id);
-                });
-            });
-            document.querySelectorAll('.edit-btn').forEach(btn => {
-                btn.addEventListener('click', e => {
-                    const id = Number(btn.dataset.id);
-                    openEditDialog(id);
-                });
-            });
+            document.querySelectorAll('.completion-checkbox').forEach(cb => cb.addEventListener('change', e => toggleExam(Number(cb.dataset.id))));
+            document.querySelectorAll('.correction-checkbox').forEach(cb => cb.addEventListener('change', e => toggleCorrection(Number(cb.dataset.id))));
+            document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', e => deleteExam(Number(btn.dataset.id))));
+            document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', e => openEditDialog(Number(btn.dataset.id))));
             document.querySelectorAll('.ics-btn').forEach(btn => {
                 btn.addEventListener('click', e => {
-                    const id = Number(btn.dataset.id);
-                    const exam = exams.find(x => x.id === id);
+                    const exam = exams.find(x => x.id === Number(btn.dataset.id));
                     if(exam) downloadICS(exam);
                 });
             });
-            // click chapter to select for pomodoro
             document.querySelectorAll('.chapter').forEach(el => {
                 el.style.cursor = 'pointer';
                 el.addEventListener('click', e => {
                     const li = el.closest('.exam-item');
-                    const id = findIdFromElement(li);
-                    selectPomodoroExam(id);
+                    selectPomodoroExam(findIdFromElement(li));
                 });
             });
         }
 
         function findIdFromElement(el){
-            // find data-id from nested input or ics-btn
             const checkbox = el.querySelector('.completion-checkbox');
-            if(checkbox) return Number(checkbox.dataset.id);
-            return null;
+            return checkbox ? Number(checkbox.dataset.id) : null;
         }
 
         function escapeHtml(s){ return (s+'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
@@ -513,7 +446,6 @@
             return `${y}-${m}-${day}`;
         }
 
-        // update summary and progress bars (with animations)
         function updateSummary(){
             let remainingTotal = 0, completedTotal = 0, totalQuestions = 0, correctedTotal = 0;
             exams.forEach(exam => {
@@ -528,15 +460,9 @@
             G.remainingEl.textContent = remainingTotal;
             G.completedEl.textContent = completedTotal;
             G.totalQuestionsEl.textContent = totalQuestions;
-
-            const pct = totalQuestions > 0 ? Math.round((completedTotal/totalQuestions)*100) : 0;
-            animateBar(G.progressBar, pct);
-
-            const corrPct = totalQuestions > 0 ? Math.round((correctedTotal/totalQuestions)*100) : 0;
-            animateBar(G.correctionProgressBar, corrPct);
-
-            const completedCorrPct = completedTotal > 0 ? Math.round((correctedTotal/completedTotal)*100) : 0;
-            animateBar(G.completedCorrectionProgressBar, completedCorrPct);
+            animateBar(G.progressBar, totalQuestions > 0 ? Math.round((completedTotal/totalQuestions)*100) : 0);
+            animateBar(G.correctionProgressBar, totalQuestions > 0 ? Math.round((correctedTotal/totalQuestions)*100) : 0);
+            animateBar(G.completedCorrectionProgressBar, completedTotal > 0 ? Math.round((correctedTotal/completedTotal)*100) : 0);
         }
 
         function animateBar(el, pct){
@@ -546,7 +472,6 @@
             setTimeout(()=> el.classList.remove('animate'), 900);
         }
 
-        // toggle completion & correction logic
         function toggleExam(id){
             const ex = exams.find(e => e.id === id);
             if(!ex) return;
@@ -561,7 +486,6 @@
             saveExams(); render();
         }
         function deleteExam(id){
-            // animate removal
             const el = document.querySelector(`[data-id="${id}"]`)?.closest('.exam-item');
             exams = exams.filter(e => e.id !== id);
             saveExams();
@@ -571,7 +495,6 @@
             } else render();
         }
 
-        // add exam
         function addExam(e){
             e && e.preventDefault && e.preventDefault();
             const subject = G.newSubject.value.trim();
@@ -579,29 +502,22 @@
             const questions = Number(G.newQuestions.value || 0);
             const dueVal = G.newDue.value || null;
             if(!subject || !chapter || questions <= 0) return alert('請填科目、章節與題數（題數需大於 0）');
-            const newExam = {
+            exams.push({
                 id: Date.now()+Math.floor(Math.random()*999),
                 subject, chapter, questions, completed:false, corrected:false, dueDate: dueVal ? dueVal : null
-            };
-            exams.push(newExam);
+            });
             saveExams();
-            // subtle focus animation
             render();
             G.newSubject.value=''; G.newChapter.value=''; G.newQuestions.value=''; G.newDue.value='';
         }
 
-        // edit dialog (inline simple)
         function openEditDialog(id){
             const ex = exams.find(x => x.id === id);
             if(!ex) return;
-            const subject = prompt('編輯科目：', ex.subject);
-            if(subject === null) return;
-            const chapter = prompt('編輯章節：', ex.chapter);
-            if(chapter === null) return;
-            const questions = prompt('編輯題數：', ex.questions);
-            if(questions === null) return;
+            const subject = prompt('編輯科目：', ex.subject); if(subject === null) return;
+            const chapter = prompt('編輯章節：', ex.chapter); if(chapter === null) return;
+            const questions = prompt('編輯題數：', ex.questions); if(questions === null) return;
             const due = prompt('到期日 (YYYY-MM-DD, 空白表示清除)：', ex.dueDate || '');
-            // validate questions
             const qn = Number(questions);
             if(isNaN(qn) || qn <= 0){ alert('題數不合法'); return; }
             ex.subject = subject.trim() || ex.subject;
@@ -611,12 +527,8 @@
             saveExams(); render();
         }
 
-        // -------------------------
-        // ICS 產生與下載（支援單筆與全部）
-        // -------------------------
         function pad(n){ return String(n).padStart(2,'0'); }
         function toICSDatetime(dateObj){
-            // produce YYYYMMDD for all-day event (no time)
             return `${dateObj.getFullYear()}${pad(dateObj.getMonth()+1)}${pad(dateObj.getDate())}`;
         }
         function downloadFile(filename, content, mime='text/calendar;charset=utf-8'){
@@ -628,108 +540,70 @@
             a.remove(); URL.revokeObjectURL(url);
         }
 
-        function createICSForExam(exam){
-            // create VEVENT with all-day date (DTSTART and DTEND next day)
-            if(!exam.dueDate){
-                // default to today
-                exam.dueDate = new Date().toISOString().slice(0,10);
-            }
-            const dt = new Date(exam.dueDate + 'T00:00:00');
+        // MODIFIED: ICS generation function optimized for Google Calendar
+        function createICSForExam(exam) {
+            const e = {...exam};
+            if (!e.dueDate) e.dueDate = new Date().toISOString().slice(0, 10);
+            const dt = new Date(e.dueDate + 'T00:00:00');
             const dtStart = toICSDatetime(dt);
-            // DTSTART all-day, DTEND is next day
-            const dtEndDate = new Date(dt.getTime() + 24*3600*1000);
-            const dtEnd = toICSDatetime(dtEndDate);
-            const uid = `exam-${exam.id}@examlist.local`;
-            const summary = `到期：${exam.subject} ${exam.chapter} (${exam.questions} 題)`;
-            const description = `考卷到期：${exam.subject} ${exam.chapter}\n題數：${exam.questions}\n來源：考卷清單`;
-            const ics = [
-                'BEGIN:VCALENDAR',
-                'VERSION:2.0',
-                'PRODID:-//ExamList//CalendarExport//TW',
-                'CALSCALE:GREGORIAN',
+            const dtEnd = toICSDatetime(new Date(dt.getTime() + 24 * 3600 * 1000));
+            
+            const summary = `到期：${e.subject} ${e.chapter} (${e.questions} 題)`;
+            const description = `考卷到期：${e.subject} ${e.chapter}\\n題數：${e.questions}\\n來源：考卷清單`;
+
+            const icsEvent = [
                 'BEGIN:VEVENT',
-                `UID:${uid}`,
+                `UID:exam-${e.id}@examlist.local`,
                 `SUMMARY:${escapeICSText(summary)}`,
                 `DESCRIPTION:${escapeICSText(description)}`,
                 `DTSTART;VALUE=DATE:${dtStart}`,
                 `DTEND;VALUE=DATE:${dtEnd}`,
-                'END:VEVENT',
+                `CATEGORIES:${escapeICSText(e.subject)}`, // Helps with filtering
+                'TRANSP:TRANSPARENT', // Makes it a non-blocking "available" event
+                'END:VEVENT'
+            ].join('\\r\\n');
+
+            return icsEvent;
+        }
+
+        function escapeICSText(s){ return (s||'').replace(/\\n/g,'\\\\n').replace(/,/g,'\\\\,').replace(/;/g, '\\\\;'); }
+        
+        function downloadICS(exam){
+            const icsEvent = createICSForExam(exam);
+            const icsCalendar = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//ExamList//SingleExport//TW',
+                'CALSCALE:GREGORIAN',
+                icsEvent,
                 'END:VCALENDAR'
             ].join('\\r\\n');
-            return ics;
-        }
-
-        function escapeICSText(s){
-            return (s||'').replace(/\\n/g,'\\\\n').replace(/,/g,'\\\\,');
-        }
-
-        function downloadICS(exam){
-            const ics = createICSForExam(exam);
-            const filename = `${exam.subject}-${exam.chapter || 'exam'}.ics`.replace(/\\s+/g,'_');
-            downloadFile(filename, ics);
+            downloadFile(`${exam.subject}-${exam.chapter || 'exam'}.ics`.replace(/\s+/g,'_'), icsCalendar);
         }
 
         function downloadAllICS(){
-            // bundle multiple VEVENTs into one calendar
-            const events = exams.map(ex => {
-                // if no due date, skip? include with today's date is okay
-                const e = { ...ex };
-                if(!e.dueDate) e.dueDate = new Date().toISOString().slice(0,10);
-                const dt = new Date(e.dueDate + 'T00:00:00');
-                const dtStart = toICSDatetime(dt);
-                const dtEnd = toICSDatetime(new Date(dt.getTime()+24*3600*1000));
-                const uid = `exam-${e.id}@examlist.local`;
-                const summary = `到期：${e.subject} ${e.chapter} (${e.questions} 題)`;
-                const description = `考卷到期：${e.subject} ${e.chapter}\\n題數：${e.questions}\\n來源：考卷清單`;
-                return [
-                    'BEGIN:VEVENT',
-                    `UID:${uid}`,
-                    `SUMMARY:${escapeICSText(summary)}`,
-                    `DESCRIPTION:${escapeICSText(description)}`,
-                    `DTSTART;VALUE=DATE:${dtStart}`,
-                    `DTEND;VALUE=DATE:${dtEnd}`,
-                    'END:VEVENT'
-                ].join('\\r\\n');
-            }).join('\\r\\n');
-
+            const events = exams.map(ex => createICSForExam(ex)).join('\\r\\n');
             const ics = [
                 'BEGIN:VCALENDAR',
                 'VERSION:2.0',
                 'PRODID:-//ExamList//CalendarExportAll//TW',
                 'CALSCALE:GREGORIAN',
+                'X-WR-CALNAME:考卷清單', // Adds a name to the calendar on import
                 events,
                 'END:VCALENDAR'
             ].join('\\r\\n');
             downloadFile('exams_all.ics', ics);
         }
 
-        // -------------------------
-        // sorting and UI handlers
-        // -------------------------
-        G.sortByQuestionsBtn.addEventListener('click', () => {
-            sortState.key = 'questions';
-            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
-            render();
-        });
-        G.sortByChapterBtn.addEventListener('click', () => {
-            sortState.key = 'chapter';
-            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
-            render();
-        });
-        G.sortByDueBtn.addEventListener('click', () => {
-            sortState.key = 'dueDate';
-            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
-            render();
-        });
-
+        G.sortByQuestionsBtn.addEventListener('click', () => { sortState.key = 'questions'; sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; render(); });
+        G.sortByChapterBtn.addEventListener('click', () => { sortState.key = 'chapter'; sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; render(); });
+        G.sortByDueBtn.addEventListener('click', () => { sortState.key = 'dueDate'; sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; render(); });
         G.searchBox.addEventListener('input', debounce(() => render(), 180));
         G.addBtn.addEventListener('click', addExam);
         G.exportAllIcs.addEventListener('click', () => downloadAllICS());
-
-        // theme toggle
         G.themeToggle.addEventListener('click', () => {
             const current = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-            if(current === 'light') applyTheme('dark'); else applyTheme('light');
+            applyTheme(current === 'light' ? 'dark' : 'light');
         });
         function applyTheme(t){
             if(t === 'dark') document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
@@ -741,47 +615,32 @@
                 loadExams(); render();
             }
         });
-
-        // debounce utility
         function debounce(fn, wait){ let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), wait); }; }
 
-        // -------------------------
         // Pomodoro
-        // -------------------------
         const pom = {
             durations: { pom:25*60, short:5*60, long:15*60 },
-            timerId: null,
-            remaining: 25*60,
-            running: false,
-            selectedExamId: null,
-            cycles: 0,
+            timerId: null, remaining: 25*60, running: false, selectedExamId: null, cycles: 0,
         };
-
         function selectPomodoroExam(id){
             const exam = exams.find(e => e.id === id);
             if(!exam){ G.pom.selected.textContent = '（尚未選擇考卷）'; return; }
             pom.selectedExamId = id;
             G.pom.selected.textContent = `｜ ${exam.subject} ${exam.chapter}`;
-            // set display to default mode
             const mode = G.pom.mode.value;
             pom.remaining = pom.durations[mode];
-            updateTimerDisplay();
-            renderCycleDots();
+            updateTimerDisplay(); renderCycleDots();
         }
-
         function updateTimerDisplay(){
-            const mm = Math.floor(pom.remaining/60);
-            const ss = pom.remaining % 60;
+            const mm = Math.floor(pom.remaining/60), ss = pom.remaining % 60;
             G.pom.display.textContent = `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
-            // micro animation: pulse when <10s
             if(pom.remaining <= 10 && pom.running){
                 G.pom.display.style.transform = 'scale(1.02)';
                 setTimeout(()=> G.pom.display.style.transform = '', 220);
             }
         }
-
         function startPomodoro(){
-            if(pom.timerId) return; // already running
+            if(pom.timerId) return;
             pom.running = true;
             const mode = G.pom.mode.value;
             if(pom.remaining <= 0) pom.remaining = pom.durations[mode];
@@ -789,25 +648,17 @@
                 pom.remaining -= 1;
                 if(pom.remaining <= 0){
                     clearInterval(pom.timerId); pom.timerId = null; pom.running = false;
-                    // cycle logic: if it was a work session, increment cycles
                     if(mode === 'pom') pom.cycles++;
                     notifyUser('番茄鐘結束', `模式 ${mode} 已完成。`);
                 }
-                updateTimerDisplay();
-                renderCycleDots();
+                updateTimerDisplay(); renderCycleDots();
             }, 1000);
             updateTimerDisplay();
         }
-
         function pausePomodoro(){
-            if(pom.timerId){
-                clearInterval(pom.timerId); pom.timerId = null; pom.running = false;
-            } else {
-                // resume
-                startPomodoro();
-            }
+            if(pom.timerId){ clearInterval(pom.timerId); pom.timerId = null; pom.running = false; }
+            else { startPomodoro(); }
         }
-
         function resetPomodoro(){
             const mode = G.pom.mode.value;
             if(pom.timerId){ clearInterval(pom.timerId); pom.timerId = null; }
@@ -815,75 +666,57 @@
             pom.remaining = pom.durations[mode];
             updateTimerDisplay();
         }
-
-        G.pom.start.addEventListener('click', () => {
-            startPomodoro();
-        });
-        G.pom.pause.addEventListener('click', () => { pausePomodoro(); });
-        G.pom.reset.addEventListener('click', () => { resetPomodoro(); });
+        G.pom.start.addEventListener('click', startPomodoro);
+        G.pom.pause.addEventListener('click', pausePomodoro);
+        G.pom.reset.addEventListener('click', resetPomodoro);
         G.pom.mode.addEventListener('change', () => {
-            const mode = G.pom.mode.value;
-            pom.remaining = pom.durations[mode];
-            updateTimerDisplay();
+            pom.remaining = pom.durations[G.pom.mode.value]; updateTimerDisplay();
         });
-
         function renderCycleDots(){
-            const container = G.pom.cycle;
-            container.innerHTML = '';
-            const total = 4;
-            for(let i=0;i<total;i++){
+            const container = G.pom.cycle; container.innerHTML = '';
+            for(let i=0;i<4;i++){
                 const dot = document.createElement('div');
                 dot.className = 'cycle-dot' + (i < pom.cycles ? ' active' : '');
                 container.appendChild(dot);
             }
         }
-
         function notifyUser(title, body){
             try {
-                if(Notification.permission === 'granted'){
-                    new Notification(title, { body });
-                } else if(Notification.permission !== 'denied'){
-                    Notification.requestPermission().then(p => { if(p === 'granted') new Notification(title,{body}); });
-                }
-            } catch(e){
-                // ignore
-            }
-            // small visual flash
+                if(Notification.permission === 'granted') new Notification(title, { body });
+                else if(Notification.permission !== 'denied') Notification.requestPermission().then(p => { if(p === 'granted') new Notification(title,{body}); });
+            } catch(e){}
             G.pom.display.style.transition = 'box-shadow .2s';
             G.pom.display.style.boxShadow = '0 8px 28px rgba(0,0,0,0.18)';
             setTimeout(()=> G.pom.display.style.boxShadow = '', 1200);
         }
 
-        // -------------------------
-        // helpers & init
-        // -------------------------
-        function findNextId(){ return Date.now() + Math.floor(Math.random()*999); }
+        G.pom.close.addEventListener('click', () => {
+            G.pom.panel.classList.add('hidden');
+            localStorage.setItem('pomodoroHidden', 'true');
+        });
+        G.showPomodoroBtn.addEventListener('click', () => {
+            G.pom.panel.classList.remove('hidden');
+            localStorage.setItem('pomodoroHidden', 'false');
+        });
+        function initPomodoroVisibility() {
+            if (localStorage.getItem('pomodoroHidden') === 'true') {
+                G.pom.panel.classList.add('hidden');
+            }
+        }
 
-        // find exam by id
-        function getExamById(id){ return exams.find(x => x.id === id); }
-
-        // initial load
+        // Initial Load
         loadExams();
-        const storedTheme = localStorage.getItem('theme') || 'light';
-        applyTheme(storedTheme);
+        applyTheme(localStorage.getItem('theme') || 'light');
+        initPomodoroVisibility();
         render();
         renderCycleDots();
-
-        // fill progress bars animation initial
         setTimeout(()=> updateSummary(), 120);
-
-        // keyboard: space to start/pause pomodoro
         document.addEventListener('keydown', (e) => {
-            if(e.code === 'Space' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA'){
-                e.preventDefault();
-                pausePomodoro();
+            if(e.code === 'Space' && document.activeElement.tagName !== 'INPUT'){
+                e.preventDefault(); pausePomodoro();
             }
         });
-
-        // expose some functions to console for power users
-        window.EXAM_APP = {
-            exams, saveExams, loadExams, render, downloadAllICS, downloadICS
-        };
+        window.EXAM_APP = { exams, saveExams, loadExams, render, downloadAllICS, downloadICS };
     });
     </script>
 </body>
