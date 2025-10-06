@@ -2,375 +2,45 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>考卷清單與訂正進度 (重構穩定版)</title>
-    <style>
-        :root {
-            --bg-color: #f4f7f6;
-            --text-color: #333;
-            --container-bg: #fff;
-            --primary-color: #3498db;
-            --secondary-color: #ecf0f1;
-            --accent-color: #e74c3c;
-            --border-color: #eee;
-            --header-color: #2c3e50;
-            --shadow-color: rgba(0,0,0,0.1);
-            --progress-complete-color: #27ae60;
-            --progress-correction-overall-color: #f39c12;
-            --progress-correction-done-color: #16a085;
-            --date-overdue-color: #e74c3c;
-            --date-soon-color: #f39c12;
-        }
-
-        body.dark-mode {
-            --bg-color: #2c3e50;
-            --text-color: #ecf0f1;
-            --container-bg: #34495e;
-            --primary-color: #5dade2;
-            --secondary-color: #2c3e50;
-            --accent-color: #e74c3c;
-            --border-color: #46627f;
-            --header-color: #ecf0f1;
-            --shadow-color: rgba(0,0,0,0.4);
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-            line-height: 1.6;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        .container {
-            background-color: var(--container-bg);
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px var(--shadow-color);
-            transition: background-color 0.3s;
-        }
-        h1, h2, h3, h4 { color: var(--header-color); }
-        h1 { border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; }
-        
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-        #search-box {
-            padding: 10px; border: 1px solid var(--border-color); border-radius: 5px;
-            font-size: 1em; flex-grow: 1; min-width: 150px; background-color: var(--container-bg); color: var(--text-color);
-        }
-        .sort-controls { display: flex; flex-wrap: wrap; gap: 10px; }
-        .sort-controls button, .theme-toggle {
-            padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;
-            background-color: var(--primary-color); color: white; transition: background-color 0.2s;
-        }
-        .sort-controls button:hover, .theme-toggle:hover { background-color: #2980b9; }
-
-        .exam-group h3 {
-            background-color: var(--primary-color); color: white; padding: 10px;
-            border-radius: 5px; margin-top: 1.5rem;
-        }
-        .exam-list { list-style: none; padding: 0; }
-        .exam-item {
-            display: flex; flex-wrap: wrap; align-items: center; padding: 15px 10px;
-            border-bottom: 1px solid var(--border-color);
-            transition: background-color 0.2s, opacity 0.3s;
-        }
-        .exam-item:hover { background-color: rgba(0,0,0,0.05); }
-        .exam-item.completed .chapter { text-decoration: line-through; opacity: 0.6; }
-
-        .exam-item input[type="checkbox"] { margin-right: 15px; transform: scale(1.5); cursor: pointer; }
-        .exam-info { flex-grow: 1; }
-        .chapter { font-size: 1.1em; }
-        .due-date { font-size: 0.85em; color: #7f8c8d; width: 100%; padding-left: 45px; }
-        .due-date.overdue { color: var(--date-overdue-color); font-weight: bold; }
-        .due-date.soon { color: var(--date-soon-color); font-weight: bold; }
-
-        .question-count { font-weight: bold; font-size: 1.1em; color: var(--accent-color); min-width: 50px; text-align: right; padding: 0 10px; }
-        
-        .correction-control {
-            display: flex; align-items: center; margin-left: 15px; font-size: 0.9em;
-            opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
-        }
-        .exam-item.completed .correction-control { opacity: 1; visibility: visible; }
-
-        .item-controls { display: flex; align-items: center; }
-        .edit-btn, .delete-btn {
-            background: none; border: none; font-size: 1.5em;
-            cursor: pointer; opacity: 0.5; transition: opacity 0.2s; padding: 0 8px;
-        }
-        .edit-btn { color: var(--primary-color); }
-        .delete-btn { color: var(--accent-color); }
-        .exam-item:hover .edit-btn, .exam-item:hover .delete-btn { opacity: 1; }
-
-        .summary, .add-exam-form {
-            margin-top: 2rem; padding: 1.5rem; background-color: var(--secondary-color);
-            border-radius: 8px; border-left: 5px solid var(--primary-color);
-        }
-        .progress-bar-container { background-color: #ddd; border-radius: 5px; overflow: hidden; margin-bottom: 1rem; }
-        .progress-bar {
-            height: 20px; width: 0%;
-            transition: width 0.5s ease-in-out; text-align: center;
-            color: white; line-height: 20px; font-weight: bold;
-        }
-        #progress-bar { background-color: var(--progress-complete-color); }
-        #correction-progress-bar { background-color: var(--progress-correction-overall-color); }
-        #completed-correction-progress-bar { background-color: var(--progress-correction-done-color); }
-        
-        #add-form, #edit-form { display: flex; flex-wrap: wrap; gap: 10px; }
-        .add-exam-form input, .modal-content input {
-            padding: 10px; border: 1px solid var(--border-color); border-radius: 5px;
-            background-color: var(--container-bg); color: var(--text-color);
-        }
-        #add-form input[type="text"], #add-form input[type="number"], #add-form input[type="date"] { flex: 1 1 120px; }
-        #add-form button { flex: 1 1 80px; background-color: #27ae60; color: white; border: none; cursor: pointer; border-radius: 5px; }
-
-        /* Modal Styles */
-        .modal {
-            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
-            width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);
-            align-items: center; justify-content: center;
-        }
-        .modal-content {
-            background-color: var(--container-bg); margin: auto; padding: 25px;
-            border: 1px solid var(--border-color); border-radius: 8px;
-            width: 90%; max-width: 500px; position: relative;
-        }
-        .modal-content h2 { margin-top: 0; }
-        .modal-content input { width: calc(100% - 22px); margin-bottom: 10px; }
-        .modal-content button {
-            width: 100%; padding: 12px; background-color: var(--primary-color);
-            color: white; border: none; cursor: pointer; border-radius: 5px;
-        }
-        .close-btn {
-            color: #aaa; position: absolute; top: 10px; right: 20px;
-            font-size: 28px; font-weight: bold; cursor: pointer;
-        }
-    </style>
+    <title>測試三：資料讀取檢查</title>
 </head>
 <body>
-    <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <h1>考卷清單</h1>
-            <button class="theme-toggle" id="theme-toggle">切換主題</button>
-        </div>
-        <div class="toolbar">
-            <input type="text" id="search-box" placeholder="搜尋科目或章節...">
-            <div class="sort-controls">
-                <button id="sort-by-questions">按題數</button>
-                <button id="sort-by-chapter">按章節</button>
-                <button id="sort-by-due-date">按到期日</button>
-            </div>
-        </div>
-        <div class="summary">
-            <h2>進度總結</h2>
-            <h4>完成進度</h4>
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="progress-bar">0%</div>
-            </div>
-            <p>未完成: <span id="remaining-questions">0</span> 題 | 已完成: <span id="completed-questions">0</span> 題</p>
-
-            <h4 style="margin-top: 1.5rem;">整體訂正進度 (佔所有考卷)</h4>
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="correction-progress-bar">0%</div>
-            </div>
-            
-            <h4>已完成考卷之訂正進度</h4>
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="completed-correction-progress-bar">0%</div>
-            </div>
-        </div>
-        
-        <div id="exam-list-container"></div>
-
-        <div class="add-exam-form">
-            <h2>新增考卷</h2>
-            <form id="add-form">
-                <input type="text" id="new-subject" placeholder="科目" required>
-                <input type="text" id="new-chapter" placeholder="章節" required>
-                <input type="number" id="new-questions" placeholder="題數" required min="1">
-                <input type="date" id="new-due-date" title="到期日 (選填)">
-                <button type="submit">新增</button>
-            </form>
-        </div>
-    </div>
-    
-    <div id="edit-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" id="close-modal-btn">&times;</span>
-            <h2>編輯考卷</h2>
-            <form id="edit-form">
-                <input type="hidden" id="edit-id">
-                <label for="edit-subject">科目</label>
-                <input type="text" id="edit-subject" required>
-                <label for="edit-chapter">章節</label>
-                <input type="text" id="edit-chapter" required>
-                <label for="edit-questions">題數</label>
-                <input type="number" id="edit-questions" required min="1">
-                <label for="edit-due-date">到期日</label>
-                <input type="date" id="edit-due-date">
-                <button type="submit">儲存變更</button>
-            </form>
-        </div>
-    </div>
-
+    <h1>測試三：資料讀取</h1>
+    <p>這個頁面應該會列出程式碼中的四個科目：</p>
+    <ul id="list"></ul>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const initialData = [
-            { id: 1, subject: "數", chapter: "1-3", questions: 70, completed: false, corrected: false, dueDate: null },
-            { id: 2, subject: "數", chapter: "1-4", questions: 70, completed: false, corrected: false, dueDate: null },
-            { id: 3, subject: "數", chapter: "2-1", questions: 70, completed: false, corrected: false, dueDate: null },
-            { id: 4, subject: "數", chapter: "2-2", questions: 70, completed: false, corrected: false, dueDate: null },
-            { id: 5, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 6, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 7, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 8, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 9, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 10, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 11, subject: "國", chapter: "L3", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 12, subject: "國", chapter: "L4", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 13, subject: "國", chapter: "語文天地", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 14, subject: "國", chapter: "自學1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 15, subject: "理", chapter: "1-1&1-2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 16, subject: "理", chapter: "1-3", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 17, subject: "理", chapter: "1-4", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 18, subject: "理", chapter: "2-1&2-2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 19, subject: "理", chapter: "1-1&1-2", questions: 80, completed: false, corrected: false, dueDate: null },
-            { id: 20, subject: "理", chapter: "1-3&1-4", questions: 80, completed: false, corrected: false, dueDate: null },
-            { id: 21, subject: "歷", chapter: "L1", questions: 70, completed: false, corrected: false, dueDate: null },
-            { id: 22, subject: "歷", chapter: "L2", questions: 70, completed: false, corrected: false, dueDate: null },
-            { id: 23, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 24, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 25, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 26, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 27, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 28, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 101, subject: "數", chapter: "複習講義訂正", questions: 1, completed: false, corrected: false, dueDate: null },
-            { id: 102, subject: "數", chapter: "進度講義訂正", questions: 1, completed: false, corrected: false, dueDate: null },
-            { id: 103, subject: "地", chapter: "複習講義訂正", questions: 1, completed: false, corrected: false, dueDate: null },
-            { id: 104, subject: "地", chapter: "進度講義訂正", questions: 1, completed: false, corrected: false, dueDate: null },
-            { id: 105, subject: "歷", chapter: "複習講義訂正", questions: 1, completed: false, corrected: false, dueDate: null },
-            { id: 106, subject: "歷", chapter: "進度講義訂正", questions: 1, completed: false, corrected: false, dueDate: null },
-            { id: 107, subject: "公", chapter: "複習講義訂正", questions: 1, completed: false, corrected: false, dueDate: null },
-            { id: 108, subject: "公", chapter: "進度講義訂正", questions: 1, completed: false, corrected: false, dueDate: null },
-            { id: 109, subject: "國", chapter: "複習講義訂正", questions: 1, completed: false, corrected: false, dueDate: null },
-            { id: 110, subject: "國", chapter: "進度講義訂正", questions: 1, completed: false, corrected: false, dueDate: null },
-            { id: 111, subject: "理", chapter: "複習講義訂正", questions: 1, completed: false, corrected: false, dueDate: null },
-            { id: 112, subject: "理", chapter: "進度講義訂正", questions: 1, completed: false, corrected: false, dueDate: null },
+            { subject: "數", chapter: "1-3" },
+            { subject: "地", chapter: "L1" },
+            { subject: "歷", chapter: "L1" },
+            { subject: "國", chapter: "L3" }
         ];
+        const listElement = document.getElementById('list');
 
-        let exams = [];
-        let sortState = { key: 'chapter', direction: 'asc' };
-
-        const G_ELEMENTS = {
-            container: document.getElementById('exam-list-container'),
-            remainingEl: document.getElementById('remaining-questions'),
-            completedEl: document.getElementById('completed-questions'),
-            progressBar: document.getElementById('progress-bar'),
-            correctionProgressBar: document.getElementById('correction-progress-bar'),
-            completedCorrectionProgressBar: document.getElementById('completed-correction-progress-bar'),
-            searchBox: document.getElementById('search-box'),
-            addForm: document.getElementById('add-form'),
-            themeToggle: document.getElementById('theme-toggle'),
-            sortByQuestionsBtn: document.getElementById('sort-by-questions'),
-            sortByChapterBtn: document.getElementById('sort-by-chapter'),
-            sortByDueDateBtn: document.getElementById('sort-by-due-date'),
-            editModal: document.getElementById('edit-modal'),
-            editForm: document.getElementById('edit-form'),
-            closeModalBtn: document.getElementById('close-modal-btn'),
-        };
-        
-        // --- Core Functions ---
-        function saveExams() {
-            localStorage.setItem('examsList', JSON.stringify(exams));
-        }
-
-        function loadExams() {
+        if (listElement) {
             try {
-                const storedExams = localStorage.getItem('examsList');
-                if (storedExams) {
-                    const parsedExams = JSON.parse(storedExams);
-                    if (Array.isArray(parsedExams) && parsedExams.length > 0) {
-                        exams = parsedExams;
-                        return;
+                let subjectsFound = [];
+                initialData.forEach(function(item) {
+                    if (item && item.subject) {
+                        subjectsFound.push(item.subject);
                     }
-                }
-            } catch (error) {
-                console.error("Failed to load from localStorage, falling back to defaults.", error);
-                localStorage.removeItem('examsList'); // Clear corrupted data
-            }
-            exams = JSON.parse(JSON.stringify(initialData));
-        }
-
-        // *** REWRITTEN RENDER FUNCTION FOR MAXIMUM STABILITY ***
-        function render() {
-            G_ELEMENTS.container.innerHTML = '';
-            const searchTerm = G_ELEMENTS.searchBox.value.toLowerCase();
-
-            const filteredExams = exams.filter(exam => 
-                !searchTerm ||
-                exam.subject.toLowerCase().includes(searchTerm) || 
-                exam.chapter.toLowerCase().includes(searchTerm)
-            );
-
-            const groupedExams = filteredExams.reduce((acc, exam) => {
-                (acc[exam.subject] = acc[exam.subject] || []).push(exam);
-                return acc;
-            }, {});
-
-            const sortedSubjects = Object.keys(groupedExams).sort();
-            
-            for (const subject of sortedSubjects) {
-                const groupDiv = document.createElement('div');
-                groupDiv.className = 'exam-group';
-                
-                const h3 = document.createElement('h3');
-                h3.textContent = subject;
-                groupDiv.appendChild(h3);
-
-                const ul = document.createElement('ul');
-                ul.className = 'exam-list';
-
-                const sortedExams = groupedExams[subject].sort((a, b) => {
-                    let valA = a[sortState.key];
-                    let valB = b[sortState.key];
-                    if (sortState.key === 'dueDate') {
-                        valA = valA || '9999-12-31';
-                        valB = valB || '9999-12-31';
-                    }
-                    if (valA < valB) return sortState.direction === 'asc' ? -1 : 1;
-                    if (valA > valB) return sortState.direction === 'asc' ? 1 : -1;
-                    return 0;
                 });
+                listElement.innerHTML = '<li>' + subjectsFound.join('</li><li>') + '</li>';
 
-                sortedExams.forEach(exam => {
-                    const li = document.createElement('li');
-                    li.className = 'exam-item';
-                    if (exam.completed) li.classList.add('completed');
+                const p = document.createElement('p');
+                p.style.color = 'green';
+                p.textContent = '測試成功：成功讀取並顯示了 ' + subjectsFound.length + ' 個項目。';
+                document.body.appendChild(p);
 
-                    // 1. Completion Checkbox
-                    const completionCheckbox = document.createElement('input');
-                    completionCheckbox.type = 'checkbox';
-                    completionCheckbox.className = 'completion-checkbox';
-                    completionCheckbox.dataset.id = exam.id;
-                    completionCheckbox.checked = exam.completed;
-                    li.appendChild(completionCheckbox);
+            } catch (error) {
+                alert('執行資料讀取時發生了未預期的錯誤: ' + error.message);
+            }
+        } else {
+            alert('錯誤：找不到ID為 "list" 的清單元件。');
+        }
+    });
+    </script>
+</body>
+</html>
 
-                    // 2. Exam Info (Chapter and Due Date)
-                    const examInfoDiv = document.createElement('div');
-                    examInfoDiv.className = 'exam-info';
-                    const chapterSpan = document.createElement('span');
-                    chapterSpan.className = 'chapter';
-                    chapterSpan.textContent = exam.chapter;
-                    examInfoDiv.appendChild(chapterSpan);
-                    if (exam.dueDate) {
-                        const date = new Date(exam.dueDate);
-                        const today = new Date();
-                        today.s      
