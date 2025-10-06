@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>考卷清單與訂正進度（含到期日、匯出日曆、番茄鐘）</title>
+    <style>
+        :root{
+            --bg-color:#f4f7f6;
+            --text-color:#333;
+            --container-bg:#fff;
+            --primary-color:#3498db;
+            --secondary-color:#ecf0f1;
+            --accent-color:#e74c3c;
+            --border-color:#eee;
+            --header-color:#2c3e50;
+            --shadow-color:rgba(0,0,0,0.08);
+            --progress-complete-color:#27ae60;
+            --progress-correction-overall-color:#f39c12;
+            --progress-correction-done-color:#16a085;
+            --muted:#6c7a7d; /* Changed for better readability */
+        }
+        body.dark-mode{
+            --bg-color:#1f2a36;
+            --text-color:#ecf0f1;
+            --container-bg:#263640;
+            --primary-color:#5dade2;
+            --secondary-color:#20303b;
+            --accent-color:#e74c3c;
+            --border-color:#394a56;
+            --header-color:#ecf0f1;
+            --shadow-color:rgba(0,0,0,0.6);
+            --muted:#b8c4ce; /* Changed for better readability */
+        }
+        *{box-sizing:border-box}
+        body{
+            font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+            background:var(--bg-color);
+            color:var(--text-color);
+            margin:0;
+            padding:20px;
+            display:flex;
+            justify-content:center;
+            transition:background .25s,color .25s;
+        }
+        .wrap{
+            width:100%;
+            max-width:980px;
+        }
+        .container{
+            background:var(--container-bg);
+            padding:22px;
+            border-radius:12px;
+            box-shadow:0 8px 24px var(--shadow-color);
+            transition:transform .18s, box-shadow .18s;
+        }
+        .header{
+            display:flex;
+            gap:12px;
+            align-items:flex-start;
+            justify-content:space-between;
+        }
+        h1{margin:0 0 6px 0; color:var(--header-color);}
+        .top-actions{display:flex; gap:8px;}
+        button, .icon-btn{
+            padding:8px 12px;
+            border-radius:8px;
+            border:none;
+            cursor:pointer;
+            background:var(--primary-color);
+            color:white;
+            font-weight:600;
+            box-shadow:0 6px 18px rgba(0,0,0,0.06);
+            transition:transform .12s, box-shadow .12s, opacity .12s;
+        }
+        button:active{transform:translateY(1px)}
+        .icon-btn{display:inline-flex;align-items:center;gap:8px}
+        /* Style for smaller buttons */
+        .icon-btn.small {
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+        .theme-toggle{background:transparent;color:var(--primary-color);border:1px solid var(--primary-color);}
+        .toolbar{
+            display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 18px 0;align-items:center;
+        }
+        #search-box{
+            padding:10px;border-radius:8px;border:1px solid var(--border-color);flex:1;min-width:160px;
+            background:transparent;color:var(--text-color);
+        }
+        .sort-controls{display:flex;gap:8px}
+        .card{
+            padding:16px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+            border:1px solid var(--border-color); margin-top:14px;
+        }
+
+        /* summary */
+        .summary{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center}
+        .progress-bar-container{background:#ddd;border-radius:999px;overflow:hidden;height:18px;box-shadow:inset 0 -2px 6px rgba(0,0,0,0.06)}
+        .progress-bar{
+            height:100%; width:0; text-align:center; line-height:18px; font-weight:700;
+            color:white; transition:width .8s cubic-bezier(.2,.9,.2,1), background .4s;
+            will-change:width;
+        }
+        .summary p{margin:6px 0 0 0;color:var(--muted);font-size:14px}
+
+        /* exam list */
+        .exam-group h3{
+            background:var(--primary-color);color:white;padding:8px;border-radius:8px;margin:14px 0 8px 0;
+            display:inline-block; font-size:16px;
+        }
+        .exam-list{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+        .exam-item{
+            display:flex;align-items:center;padding:12px;border-radius:10px;border:1px solid var(--border-color);
+            transition:transform .45s cubic-bezier(.2,.9,.2,1), box-shadow .22s, opacity .22s;
+            background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+            will-change:transform,opacity;
+            overflow:hidden;
+            opacity:0; transform: translateY(10px) scale(0.995);
+            animation: fadeScaleIn 420ms ease forwards;
+        }
+        @keyframes fadeScaleIn{
+            from{opacity:0; transform:translateY(12px) scale(0.985)}
+            to{opacity:1; transform:translateY(0) scale(1)}
+        }
+        .exam-item .left{display:flex;align-items:center;gap:12px;flex:1}
+        .exam-item input[type="checkbox"]{transform:scale(1.35);cursor:pointer}
+        .exam-info{display:flex;flex-direction:column;gap:4px}
+        .chapter{font-weight:700;font-size:15px;display:inline-block}
+        .meta{font-size:13px;color:var(--muted)}
+        .question-count{min-width:80px;text-align:right;font-weight:700;color:var(--accent-color)}
+        .delete-btn{background:none;border:none;color:var(--accent-color);font-size:20px;cursor:pointer;opacity:.6}
+        .delete-btn:hover{opacity:1;transform:scale(1.06)}
+        .correction-control{display:flex;align-items:center;gap:6px; font-size:13px;color:var(--muted); margin-left:12px}
+
+        .exam-item.completed .chapter{ text-decoration:line-through; opacity:0.6 }
+        .due-date{font-size:13px;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,0.03); color:var(--muted); margin-left:8px}
+        .due-date.overdue{background:linear-gradient(90deg,#f9e0e0,#fde6e6); color:var(--accent-color); font-weight:700}
+        .exam-actions{display:flex;gap:8px;align-items:center;margin-left:12px}
+
+        /* hover micro animations (scale up slightly) */
+        .exam-item:hover{transform:translateY(-4px) scale(1.005); box-shadow:0 10px 30px rgba(0,0,0,0.06)}
+
+        /* progress micro animation */
+        .progress-bar.animate {
+            transition: width 900ms cubic-bezier(.18,.9,.32,1), background 400ms;
+        }
+
+        /* add-form */
+        .add-exam-form{margin-top:18px;padding:12px;border-radius:10px;border:1px dashed var(--border-color);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+        .add-exam-form input, .add-exam-form button, .add-exam-form select{padding:10px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)}
+        .add-exam-form input[type="number"]{width:110px}
+        .add-exam-form input[type="date"]{width:160px}
+        .add-exam-form .submit{background:#27ae60;color:white;border:none}
+
+        /* small UI */
+        .small{font-size:13px;color:var(--muted)}
+        .muted{color:var(--muted)}
+        .pill{padding:6px 10px;border-radius:999px;border:1px solid var(--border-color);font-size:13px}
+
+        /* pomodoro */
+        .pomodoro-panel{
+            position:fixed; right:18px; bottom:18px; width:320px; max-width:90vw; z-index:999;
+            background:var(--container-bg); border-radius:14px; padding:14px; box-shadow:0 16px 48px rgba(0,0,0,0.18);
+            border:1px solid var(--border-color);
+            transform: translateY(18px);
+            animation: popIn 420ms cubic-bezier(.2,.9,.2,1) forwards;
+        }
+        @keyframes popIn{
+            from{opacity:0; transform: translateY(24px) scale(.98)}
+            to{opacity:1; transform: translateY(0) scale(1)}
+        }
+        .pomodoro-header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+        .timer-display{font-size:36px;font-weight:800;text-align:center;margin:8px 0; transition:transform .15s}
+        .pom-controls{display:flex;gap:8px;justify-content:center}
+        .cycle-indicator{display:flex;gap:6px;justify-content:center;margin-top:8px}
+        .cycle-dot{width:10px;height:10px;border-radius:50%;background:#ddd}
+        .cycle-dot.active{background:var(--primary-color); box-shadow:0 6px 14px rgba(0,0,0,0.08)}
+
+        /* responsive */
+        @media (max-width:720px){
+            .summary{grid-template-columns:1fr}
+            .top-actions{flex-wrap:wrap}
+            .pomodoro-panel{right:8px;left:8px;bottom:12px;width:auto}
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="container">
+            <div class="header">
+                <div>
+                    <h1>考卷清單</h1>
+                    <div class="small muted">到期日、匯出日曆 (.ics)、番茄鐘 — 已保留你的預設清單</div>
+                </div>
+                <div class="top-actions">
+                    <button id="export-all-ics" class="icon-btn">匯出全部到日曆</button>
+                    <button id="clear-storage" class="theme-toggle">清除本機資料</button>
+                    <button id="theme-toggle" class="theme-toggle">切換深色</button>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <input id="search-box" placeholder="搜尋科目或章節..." />
+                <div class="sort-controls">
+                    <button id="sort-by-questions">按題數排序</button>
+                    <button id="sort-by-chapter">按章節排序</button>
+                    <button id="sort-by-due">依到期日排序</button>
+                </div>
+                <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+                    <div class="pill small">總題數：<span id="total-questions">0</span></div>
+                </div>
+            </div>
+
+            <div class="card summary">
+                <div>
+                    <h4>完成進度</h4>
+                    <div class="progress-bar-container" style="margin-top:8px">
+                        <div id="progress-bar" class="progress-bar" style="background:var(--progress-complete-color)">0%</div>
+                    </div>
+                    <p>尚未完成總題數: <strong id="remaining-questions">0</strong> | 已完成總題數: <strong id="completed-questions">0</strong></p>
+                </div>
+                <div>
+                    <h4>訂正進度</h4>
+                    <div style="margin-top:8px">
+                        <div class="small muted">整體（含未完成）</div>
+                        <div class="progress-bar-container" style="margin-top:6px">
+                            <div id="correction-progress-bar" class="progress-bar" style="background:var(--progress-correction-overall-color)">0%</div>
+                        </div>
+                        <div class="small muted" style="margin-top:8px">已完成考卷之訂正進度</div>
+                        <div class="progress-bar-container" style="margin-top:6px">
+                            <div id="completed-correction-progress-bar" class="progress-bar" style="background:var(--progress-correction-done-color)">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="exam-list-container"></div>
+
+            <div class="add-exam-form">
+                <input type="text" id="new-subject" placeholder="科目" required />
+                <input type="text" id="new-chapter" placeholder="章節" required />
+                <input type="number" id="new-questions" placeholder="題數" required min="1" />
+                <input type="date" id="new-due" />
+                <button id="add-btn" class="submit">新增</button>
+                <div style="margin-left:auto" class="small muted">到期日(選填)，匯出日曆時會使用</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pomodoro-panel" id="pomodoro-panel" aria-live="polite">
+        <div class="pomodoro-header">
+            <div style="display:flex;gap:8px;align-items:center">
+                <strong>番茄鐘</strong>
+                <span id="pom-selected" class="small muted">（尚未選擇考卷）</span>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+                <select id="pom-mode" class="small">
+                    <option value="pom">工作（番茄）</option>
+                    <option value="short">短休</option>
+                    <option value="long">長休</option>
+                </select>
+                <button id="pom-start">開始</button>
+            </div>
+        </div>
+        <div class="timer-display" id="timer-display">25:00</div>
+        <div class="pom-controls">
+            <button id="pom-pause" class="theme-toggle">暫停</button>
+            <button id="pom-reset" class="theme-toggle">重設</button>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;justify-content:center">
+            <div class="small muted">週期</div>
+            <div id="pom-cycle" class="cycle-indicator"></div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // -------------------------
+        // 初始資料（保留你原本清單，只加 dueDate: null）
+        // -------------------------
+        const initialData = [
+            { id: 1, subject: "數", chapter: "1-3", questions: 70, completed: false, corrected: false, dueDate: null },
+            { id: 2, subject: "數", chapter: "1-4", questions: 70, completed: false, corrected: false, dueDate: null },
+            { id: 3, subject: "數", chapter: "2-1", questions: 70, completed: false, corrected: false, dueDate: null },
+            { id: 4, subject: "數", chapter: "2-2", questions: 70, completed: false, corrected: false, dueDate: null },
+            { id: 5, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 6, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 7, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 8, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 9, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 10, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 11, subject: "國", chapter: "L3", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 12, subject: "國", chapter: "L4", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 13, subject: "國", chapter: "語文天地", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 14, subject: "國", chapter: "自學1", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 15, subject: "理", chapter: "1-1&1-2", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 16, subject: "理", chapter: "1-3", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 17, subject: "理", chapter: "1-4", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 18, subject: "理", chapter: "2-1&2-2", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 19, subject: "理", chapter: "1-1&1-2", questions: 80, completed: false, corrected: false, dueDate: null },
+            { id: 20, subject: "理", chapter: "1-3&1-4", questions: 80, completed: false, corrected: false, dueDate: null },
+            { id: 21, subject: "歷", chapter: "L1", questions: 70, completed: false, corrected: false, dueDate: null },
+            { id: 22, subject: "歷", chapter: "L2", questions: 70, completed: false, corrected: false, dueDate: null },
+            { id: 23, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 24, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 25, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 26, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 27, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 28, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }
+        ];
+
+        // state
+        let exams = [];
+        let sortState = { key: 'chapter', direction: 'asc' };
+
+        // element refs
+        const G = {
+            container: document.getElementById('exam-list-container'),
+            remainingEl: document.getElementById('remaining-questions'),
+            completedEl: document.getElementById('completed-questions'),
+            progressBar: document.getElementById('progress-bar'),
+            correctionProgressBar: document.getElementById('correction-progress-bar'),
+            completedCorrectionProgressBar: document.getElementById('completed-correction-progress-bar'),
+            searchBox: document.getElementById('search-box'),
+            addBtn: document.getElementById('add-btn'),
+            newSubject: document.getElementById('new-subject'),
+            newChapter: document.getElementById('new-chapter'),
+            newQuestions: document.getElementById('new-questions'),
+            newDue: document.getElementById('new-due'),
+            sortByQuestionsBtn: document.getElementById('sort-by-questions'),
+            sortByChapterBtn: document.getElementById('sort-by-chapter'),
+            sortByDueBtn: document.getElementById('sort-by-due'),
+            exportAllIcs: document.getElementById('export-all-ics'),
+            totalQuestionsEl: document.getElementById('total-questions'),
+            themeToggle: document.getElementById('theme-toggle'),
+            clearStorageBtn: document.getElementById('clear-storage'),
+            pom: {
+                panel: document.getElementById('pomodoro-panel'),
+                display: document.getElementById('timer-display'),
+                start: document.getElementById('pom-start'),
+                pause: document.getElementById('pom-pause'),
+                reset: document.getElementById('pom-reset'),
+                mode: document.getElementById('pom-mode'),
+                selected: document.getElementById('pom-selected'),
+                cycle: document.getElementById('pom-cycle')
+            }
+        };
+
+        // localStorage helpers
+        function saveExams(){ localStorage.setItem('examsList', JSON.stringify(exams)); }
+        function loadExams(){
+            const s = localStorage.getItem('examsList');
+            if(s){
+                exams = JSON.parse(s).map(e => ({ corrected:false, dueDate:null, ...e }));
+            } else {
+                exams = initialData.slice();
+            }
+        }
+
+        // render
+        function render(){
+            G.container.innerHTML = '';
+            const q = G.searchBox.value.trim().toLowerCase();
+            // filter
+            const filtered = exams.filter(exam =>
+                exam.subject.toLowerCase().includes(q) || exam.chapter.toLowerCase().includes(q)
+            );
+            // group by subject
+            const grouped = filtered.reduce((acc, exam) => {
+                (acc[exam.subject] = acc[exam.subject] || []).push(exam);
+                return acc;
+            }, {});
+            // sort groups and items
+            const subjectKeys = Object.keys(grouped).sort();
+            subjectKeys.forEach(subject => {
+                const list = grouped[subject];
+                list.sort((a,b) => {
+                    let va = a[sortState.key], vb = b[sortState.key];
+                    // for dueDate, nulls should go to the end
+                    if(sortState.key === 'dueDate'){
+                        if(!va && 
