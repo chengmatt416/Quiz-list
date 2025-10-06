@@ -131,23 +131,28 @@
         .due-date{font-size:13px;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,0.03); color:var(--muted); margin-left:8px}
         .due-date.overdue{background:linear-gradient(90deg,#f9e0e0,#fde6e6); color:var(--accent-color); font-weight:700}
         .exam-actions{display:flex;gap:8px;align-items:center;margin-left:12px}
+        
+        /* MODIFIED: Explicitly set color to white to override .small class */
         .exam-actions .icon-btn {
             padding: 4px 8px;
             font-size: 12px;
+            color: white; 
         }
+
         .exam-item:hover{transform:translateY(-4px) scale(1.005); box-shadow:0 10px 30px rgba(0,0,0,0.06)}
         .progress-bar.animate {
             transition: width 900ms cubic-bezier(.18,.9,.32,1), background 400ms;
         }
         .add-exam-form{margin-top:18px;padding:12px;border-radius:10px;border:1px dashed var(--border-color);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
         .add-exam-form input, .add-exam-form button, .add-exam-form select{padding:8px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)}
-        /* MODIFIED: Changed from fixed width to flexible */
         .add-exam-form input { flex: 1 1 120px; }
         .add-exam-form input[type="number"]{ flex: 1 1 80px; }
         .add-exam-form button { flex: 1 1 80px; }
         .add-exam-form .submit{background:#27ae60;color:white;border:none}
+        
         .small{font-size:13px;color:var(--muted)}
         .muted{color:var(--muted)}
+
         .pill{padding:6px 10px;border-radius:999px;border:1px solid var(--border-color);font-size:13px}
 
         /* pomodoro */
@@ -180,7 +185,6 @@
         }
         .pom-close-btn:hover { color: var(--text-color); }
 
-        /* MODIFIED: Enhanced responsive styles */
         @media (max-width:720px){
             body { padding: 10px; }
             .container { padding: 15px; }
@@ -540,7 +544,6 @@
             a.remove(); URL.revokeObjectURL(url);
         }
 
-        // MODIFIED: ICS generation function optimized for Google Calendar
         function createICSForExam(exam) {
             const e = {...exam};
             if (!e.dueDate) e.dueDate = new Date().toISOString().slice(0, 10);
@@ -558,8 +561,8 @@
                 `DESCRIPTION:${escapeICSText(description)}`,
                 `DTSTART;VALUE=DATE:${dtStart}`,
                 `DTEND;VALUE=DATE:${dtEnd}`,
-                `CATEGORIES:${escapeICSText(e.subject)}`, // Helps with filtering
-                'TRANSP:TRANSPARENT', // Makes it a non-blocking "available" event
+                `CATEGORIES:${escapeICSText(e.subject)}`,
+                'TRANSP:TRANSPARENT',
                 'END:VEVENT'
             ].join('\\r\\n');
 
@@ -588,7 +591,7 @@
                 'VERSION:2.0',
                 'PRODID:-//ExamList//CalendarExportAll//TW',
                 'CALSCALE:GREGORIAN',
-                'X-WR-CALNAME:考卷清單', // Adds a name to the calendar on import
+                'X-WR-CALNAME:考卷清單',
                 events,
                 'END:VCALENDAR'
             ].join('\\r\\n');
