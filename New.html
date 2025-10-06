@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>考卷清單</title>
+    <title>考卷清單與訂正進度</title>
     <style>
         :root {
             --bg-color: #f4f7f6;
@@ -15,6 +15,9 @@
             --border-color: #eee;
             --header-color: #2c3e50;
             --shadow-color: rgba(0,0,0,0.1);
+            --progress-complete-color: #27ae60;
+            --progress-correction-overall-color: #f39c12;
+            --progress-correction-done-color: #16a085;
         }
 
         body.dark-mode {
@@ -46,7 +49,7 @@
             box-shadow: 0 4px 6px var(--shadow-color);
             transition: background-color 0.3s;
         }
-        h1, h2, h3 { color: var(--header-color); }
+        h1, h2, h3, h4 { color: var(--header-color); }
         h1 { border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; }
         
         .toolbar {
@@ -85,6 +88,14 @@
         .chapter { transition: text-decoration 0.3s, opacity 0.3s; }
         .question-count { font-weight: bold; font-size: 1.1em; color: var(--accent-color); min-width: 50px; text-align: right; }
         
+        .correction-control {
+            display: flex; align-items: center; margin-left: 15px; font-size: 0.9em;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
+        }
+        .exam-item.completed .correction-control {
+            opacity: 1; visibility: visible;
+        }
+
         .delete-btn {
             background: none; border: none; color: var(--accent-color); font-size: 1.5em;
             cursor: pointer; opacity: 0.5; transition: opacity 0.2s; padding: 0 10px;
@@ -97,10 +108,13 @@
         }
         .progress-bar-container { background-color: #ddd; border-radius: 5px; overflow: hidden; margin-bottom: 1rem; }
         .progress-bar {
-            height: 20px; width: 0%; background-color: #27ae60;
+            height: 20px; width: 0%;
             transition: width 0.5s ease-in-out; text-align: center;
             color: white; line-height: 20px; font-weight: bold;
         }
+        #progress-bar { background-color: var(--progress-complete-color); }
+        #correction-progress-bar { background-color: var(--progress-correction-overall-color); }
+        #completed-correction-progress-bar { background-color: var(--progress-correction-done-color); }
         
         .add-exam-form form { display: flex; flex-wrap: wrap; gap: 10px; }
         .add-exam-form input {
@@ -128,11 +142,21 @@
         </div>
         <div class="summary">
             <h2>進度總結</h2>
+            <h4>完成進度</h4>
             <div class="progress-bar-container">
                 <div class="progress-bar" id="progress-bar">0%</div>
             </div>
-            <p>尚未完成總題數: <span id="remaining-questions">0</span></p>
-            <p>已經完成總題數: <span id="completed-questions">0</span></p>
+            <p>尚未完成總題數: <span id="remaining-questions">0</span> | 已經完成總題數: <span id="completed-questions">0</span></p>
+
+            <h4 style="margin-top: 1.5rem;">整體訂正進度 (佔所有考卷)</h4>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="correction-progress-bar">0%</div>
+            </div>
+            
+            <h4>已完成考卷之訂正進度</h4>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="completed-correction-progress-bar">0%</div>
+            </div>
         </div>
         
         <div id="exam-list-container"></div>
@@ -150,34 +174,35 @@
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const initialData = [
-            { id: 1, subject: "數", chapter: "1-3", questions: 70, completed: false },
-            { id: 2, subject: "數", chapter: "1-4", questions: 70, completed: false },
-            { id: 3, subject: "數", chapter: "2-1", questions: 70, completed: false },
-            { id: 4, subject: "數", chapter: "2-2", questions: 70, completed: false },
-            { id: 5, subject: "地", chapter: "L1", questions: 50, completed: false },
-            { id: 6, subject: "地", chapter: "L2", questions: 50, completed: false },
-            { id: 7, subject: "歷", chapter: "L1", questions: 50, completed: false },
-            { id: 8, subject: "歷", chapter: "L2", questions: 50, completed: false },
-            { id: 9, subject: "公", chapter: "L1", questions: 50, completed: false },
-            { id: 10, subject: "公", chapter: "L2", questions: 50, completed: false },
-            { id: 11, subject: "國", chapter: "L3", questions: 50, completed: false },
-            { id: 12, subject: "國", chapter: "L4", questions: 50, completed: false },
-            { id: 13, subject: "國", chapter: "語文天地", questions: 50, completed: false },
-            { id: 14, subject: "國", chapter: "自學1", questions: 50, completed: false },
-            { id: 15, subject: "理", chapter: "1-1&1-2", questions: 50, completed: false },
-            { id: 16, subject: "理", chapter: "1-3", questions: 50, completed: false },
-            { id: 17, subject: "理", chapter: "1-4", questions: 50, completed: false },
-            { id: 18, subject: "理", chapter: "2-1&2-2", questions: 50, completed: false },
-            { id: 19, subject: "理", chapter: "1-1&1-2", questions: 80, completed: false },
-            { id: 20, subject: "理", chapter: "1-3&1-4", questions: 80, completed: false },
-            { id: 21, subject: "歷", chapter: "L1", questions: 70, completed: false },
-            { id: 22, subject: "歷", chapter: "L2", questions: 70, completed: false },
-            { id: 23, subject: "地", chapter: "L1", questions: 50, completed: false },
-            { id: 24, subject: "地", chapter: "L2", questions: 50, completed: false },
-            { id: 25, subject: "公", chapter: "L1", questions: 50, completed: false },
-            { id: 26, subject: "公", chapter: "L2", questions: 50, completed: false },
-            { id: 27, subject: "歷", chapter: "L1", questions: 50, completed: false },
-            { id: 28, subject: "歷", chapter: "L2", questions: 50, completed: false }
+            // ... (您的 initialData 保持不變) ...
+             { id: 1, subject: "數", chapter: "1-3", questions: 70, completed: false, corrected: false },
+            { id: 2, subject: "數", chapter: "1-4", questions: 70, completed: false, corrected: false },
+            { id: 3, subject: "數", chapter: "2-1", questions: 70, completed: false, corrected: false },
+            { id: 4, subject: "數", chapter: "2-2", questions: 70, completed: false, corrected: false },
+            { id: 5, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false },
+            { id: 6, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false },
+            { id: 7, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false },
+            { id: 8, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false },
+            { id: 9, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false },
+            { id: 10, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false },
+            { id: 11, subject: "國", chapter: "L3", questions: 50, completed: false, corrected: false },
+            { id: 12, subject: "國", chapter: "L4", questions: 50, completed: false, corrected: false },
+            { id: 13, subject: "國", chapter: "語文天地", questions: 50, completed: false, corrected: false },
+            { id: 14, subject: "國", chapter: "自學1", questions: 50, completed: false, corrected: false },
+            { id: 15, subject: "理", chapter: "1-1&1-2", questions: 50, completed: false, corrected: false },
+            { id: 16, subject: "理", chapter: "1-3", questions: 50, completed: false, corrected: false },
+            { id: 17, subject: "理", chapter: "1-4", questions: 50, completed: false, corrected: false },
+            { id: 18, subject: "理", chapter: "2-1&2-2", questions: 50, completed: false, corrected: false },
+            { id: 19, subject: "理", chapter: "1-1&1-2", questions: 80, completed: false, corrected: false },
+            { id: 20, subject: "理", chapter: "1-3&1-4", questions: 80, completed: false, corrected: false },
+            { id: 21, subject: "歷", chapter: "L1", questions: 70, completed: false, corrected: false },
+            { id: 22, subject: "歷", chapter: "L2", questions: 70, completed: false, corrected: false },
+            { id: 23, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false },
+            { id: 24, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false },
+            { id: 25, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false },
+            { id: 26, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false },
+            { id: 27, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false },
+            { id: 28, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false }
         ];
 
         let exams = [];
@@ -188,6 +213,8 @@
             remainingEl: document.getElementById('remaining-questions'),
             completedEl: document.getElementById('completed-questions'),
             progressBar: document.getElementById('progress-bar'),
+            correctionProgressBar: document.getElementById('correction-progress-bar'),
+            completedCorrectionProgressBar: document.getElementById('completed-correction-progress-bar'),
             searchBox: document.getElementById('search-box'),
             addForm: document.getElementById('add-form'),
             themeToggle: document.getElementById('theme-toggle'),
@@ -202,7 +229,11 @@
         function loadExams() {
             const storedExams = localStorage.getItem('examsList');
             if (storedExams) {
-                exams = JSON.parse(storedExams);
+                // Ensure every loaded exam has the 'corrected' property for backward compatibility
+                exams = JSON.parse(storedExams).map(exam => ({
+                    ...exam,
+                    corrected: exam.corrected || false
+                }));
             } else {
                 exams = initialData;
             }
@@ -245,10 +276,14 @@
                     li.className = 'exam-item';
                     if (exam.completed) li.classList.add('completed');
                     li.innerHTML = `
-                        <input type="checkbox" data-id="${exam.id}" ${exam.completed ? 'checked' : ''}>
+                        <input type="checkbox" class="completion-checkbox" data-id="${exam.id}" ${exam.completed ? 'checked' : ''}>
                         <div class="exam-info">
                             <span class="chapter">${exam.chapter}</span>
                         </div>
+                        <label class="correction-control">
+                            <input type="checkbox" class="correction-checkbox" data-id="${exam.id}" ${exam.corrected ? 'checked' : ''}>
+                            訂正
+                        </label>
                         <div class="question-count">${exam.questions} 題</div>
                         <button class="delete-btn" data-id="${exam.id}">&times;</button>
                     `;
@@ -261,23 +296,55 @@
         }
 
         function updateSummary() {
-            let remainingTotal = 0, completedTotal = 0, totalQuestions = 0;
+            let remainingTotal = 0, completedTotal = 0, totalQuestions = 0, correctedTotal = 0;
+            
             exams.forEach(exam => {
                 totalQuestions += exam.questions;
-                if (exam.completed) completedTotal += exam.questions;
-                else remainingTotal += exam.questions;
+                if (exam.completed) {
+                    completedTotal += exam.questions;
+                    if (exam.corrected) {
+                        correctedTotal += exam.questions;
+                    }
+                } else {
+                    remainingTotal += exam.questions;
+                }
             });
+
+            // Update completion summary
             G_ELEMENTS.remainingEl.textContent = remainingTotal;
             G_ELEMENTS.completedEl.textContent = completedTotal;
             const percentage = totalQuestions > 0 ? ((completedTotal / totalQuestions) * 100).toFixed(0) : 0;
             G_ELEMENTS.progressBar.style.width = percentage + '%';
             G_ELEMENTS.progressBar.textContent = percentage + '%';
+
+            // Update overall correction summary
+            const correctionPercentage = totalQuestions > 0 ? ((correctedTotal / totalQuestions) * 100).toFixed(0) : 0;
+            G_ELEMENTS.correctionProgressBar.style.width = correctionPercentage + '%';
+            G_ELEMENTS.correctionProgressBar.textContent = correctionPercentage + '%';
+            
+            // Update correction summary for completed exams only
+            const completedCorrectionPercentage = completedTotal > 0 ? ((correctedTotal / completedTotal) * 100).toFixed(0) : 0;
+            G_ELEMENTS.completedCorrectionProgressBar.style.width = completedCorrectionPercentage + '%';
+            G_ELEMENTS.completedCorrectionProgressBar.textContent = completedCorrectionPercentage + '%';
         }
 
         function toggleExam(id) {
             const exam = exams.find(e => e.id === id);
             if (exam) {
                 exam.completed = !exam.completed;
+                // If an exam is marked as not completed, it cannot be corrected.
+                if (!exam.completed) {
+                    exam.corrected = false;
+                }
+                saveExams();
+                render();
+            }
+        }
+
+        function toggleCorrection(id) {
+            const exam = exams.find(e => e.id === id);
+            if (exam && exam.completed) { // Can only correct if completed
+                exam.corrected = !exam.corrected;
                 saveExams();
                 render();
             }
@@ -298,7 +365,9 @@
             if (subject && chapter && questions > 0) {
                 const newExam = {
                     id: Date.now(), // Unique ID
-                    subject, chapter, questions, completed: false
+                    subject, chapter, questions, 
+                    completed: false,
+                    corrected: false // Add new property
                 };
                 exams.push(newExam);
                 saveExams();
@@ -319,11 +388,16 @@
         }
 
         G_ELEMENTS.container.addEventListener('click', e => {
-            if (e.target.type === 'checkbox') {
-                toggleExam(parseInt(e.target.dataset.id));
+            const target = e.target;
+            const id = parseInt(target.dataset.id);
+            if (target.classList.contains('completion-checkbox')) {
+                toggleExam(id);
             }
-            if (e.target.classList.contains('delete-btn')) {
-                deleteExam(parseInt(e.target.dataset.id));
+            if (target.classList.contains('correction-checkbox')) {
+                toggleCorrection(id);
+            }
+            if (target.classList.contains('delete-btn')) {
+                deleteExam(id);
             }
         });
         
