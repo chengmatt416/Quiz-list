@@ -185,6 +185,17 @@
         }
         .pom-close-btn:hover { color: var(--text-color); }
 
+        .pom-fullscreen {
+            position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+            background: rgba(0,0,0,0.7); transition:opacity .18s;
+        }
+        .pom-fullscreen .pom-inner {
+            width: min(920px, 96vw); background: var(--container-bg); padding: 28px; border-radius:12px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6); text-align:center;
+        }
+        .pom-fullscreen .timer-display { font-size:96px; }
+        .pom-fullscreen .pom-controls button { font-size:20px; padding:10px 18px; border-radius:12px; }
+
         @media (max-width:720px){
             body { 
                 padding: 10px; 
@@ -208,7 +219,11 @@
                 </div>
                 <div class="top-actions">
                     <button id="show-pomodoro" class="icon-btn">顯示番茄鐘</button>
+                    <button id="pom-fullscreen-toggle" class="icon-btn">番茄鐘全螢幕</button>
                     <button id="export-all-ics" class="icon-btn">匯出全部到日曆</button>
+                    <button id="export-json" class="icon-btn">匯出 JSON</button>
+                    <label for="import-json-file" class="icon-btn" style="cursor:pointer;padding:6px 10px">匯入 JSON</label>
+                    <input type="file" id="import-json-file" accept="application/json" style="display:none" />
                     <button id="clear-storage" class="theme-toggle">清除本機資料</button>
                     <button id="theme-toggle" class="theme-toggle">切換深色</button>
                 </div>
@@ -221,7 +236,14 @@
                     <button id="sort-by-chapter">按章節排序</button>
                     <button id="sort-by-due">依到期日排序</button>
                 </div>
-                <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+                <div style="display:flex;gap:6px;align-items:center;margin-left:12px">
+                    <select id="filter-select" class="small" title="篩選">
+                        <option value="all">全部</option>
+                        <option value="today">當日到期</option>
+                        <option value="overdue">已過期</option>
+                        <option value="7days">七天內</option>
+                        <option value="noduedate">無標示到期日</option>
+                    </select>
                     <div class="pill small">總題數：<span id="total-questions">0</span></div>
                 </div>
             </div>
@@ -262,6 +284,9 @@
         </div>
     </div>
 
+    <!-- fullscreen container (created/hidden dynamically) -->
+    <div id="pom-fullscreen" style="display:none"></div>
+
     <div class="pomodoro-panel" id="pomodoro-panel" aria-live="polite">
         <div class="pomodoro-header">
             <div style="display:flex;gap:8px;align-items:center">
@@ -286,6 +311,11 @@
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;justify-content:center">
             <div class="small muted">週期</div>
             <div id="pom-cycle" class="cycle-indicator"></div>
+        </div>
+        <div style="margin-top:10px;display:flex;justify-content:center;gap:8px;align-items:center">
+            <label class="small muted" style="display:flex;align-items:center;gap:6px">
+                <input type="checkbox" id="pom-enable-sound" /> 啟用音效
+            </label>
         </div>
     </div>
 
@@ -316,10 +346,14 @@
             sortByChapterBtn: document.getElementById('sort-by-chapter'),
             sortByDueBtn: document.getElementById('sort-by-due'),
             exportAllIcs: document.getElementById('export-all-ics'),
+            exportJsonBtn: document.getElementById('export-json'),
+            importJsonFile: document.getElementById('import-json-file'),
             totalQuestionsEl: document.getElementById('total-questions'),
             themeToggle: document.getElementById('theme-toggle'),
             clearStorageBtn: document.getElementById('clear-storage'),
             showPomodoroBtn: document.getElementById('show-pomodoro'),
+            pomFullscreenToggle: document.getElementById('pom-fullscreen-toggle'),
+            filterSelect: document.getElementById('filter-select'),
             pom: {
                 panel: document.getElementById('pomodoro-panel'),
                 display: document.getElementById('timer-display'),
@@ -329,7 +363,8 @@
                 mode: document.getElementById('pom-mode'),
                 selected: document.getElementById('pom-selected'),
                 cycle: document.getElementById('pom-cycle'),
-                close: document.getElementById('pom-close')
+                close: document.getElementById('pom-close'),
+                enableSound: document.getElementById('pom-enable-sound')
             }
         };
 
@@ -346,9 +381,26 @@
         function render(){
             G.container.innerHTML = '';
             const q = G.searchBox.value.trim().toLowerCase();
-            const filtered = exams.filter(exam =>
-                exam.subject.toLowerCase().includes(q) || exam.chapter.toLowerCase().includes(q)
-            );
+            const filter = G.filterSelect.value;
+            const filtered = exams.filter(exam => {
+                const matchesText = exam.subject.toLowerCase().includes(q) || exam.chapter.toLowerCase().includes(q);
+                if(!matchesText) return false;
+
+                // filter logic
+                const now = new Date();
+                const nowMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                if(filter === 'all') return true;
+                if(filter === 'noduedate') return !exam.dueDate;
+                if(!exam.dueDate) return false;
+                const due = new Date(exam.dueDate);
+                const dueMid = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+                const diffDays = Math.round((dueMid - nowMid) / (24*3600*1000));
+                if(filter === 'today') return diffDays === 0;
+                if(filter === 'overdue') return diffDays < 0;
+                if(filter === '7days') return diffDays >= 0 && diffDays <= 7;
+                return true;
+            });
+
             const grouped = filtered.reduce((acc, exam) => {
                 (acc[exam.subject] = acc[exam.subject] || []).push(exam);
                 return acc;
@@ -545,48 +597,55 @@
             a.remove(); URL.revokeObjectURL(url);
         }
 
-        // MODIFIED: Rewritten ICS date logic to be timezone-proof
+        // ICS creation: improved for compatibility (DTSTAMP, UID, METHOD:PUBLISH)
+        function toUTCStamp(date){
+            const y = date.getUTCFullYear(), m = pad(date.getUTCMonth()+1), d = pad(date.getUTCDate()),
+                hh = pad(date.getUTCHours()), mm = pad(date.getUTCMinutes()), ss = pad(date.getUTCSeconds());
+            return `${y}${m}${d}T${hh}${mm}${ss}Z`;
+        }
+
+        function escapeICSText(s){ return (s||'').replace(/\\/g, '\\\\').replace(/,/g,'\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n'); }
+
         function createICSForExam(exam) {
             const e = {...exam};
             if (!e.dueDate) {
-                // If no due date, default to today's date
+                // If no due date, default to today's date (local)
                 const today = new Date();
                 e.dueDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
             }
 
-            // Directly format the start date string to avoid local time parsing issues
-            const dtStart = e.dueDate.replace(/-/g, '');
-
-            // To get the next day for DTEND, parse the date as UTC
+            // DTSTART and DTEND as all-day dates (VALUE=DATE). Ensure DTEND is next day.
             const dateParts = e.dueDate.split('-').map(part => parseInt(part, 10));
             const startDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
-            
-            // Add one day in UTC
-            startDateObj.setUTCDate(startDateObj.getUTCDate() + 1);
+            const endDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+            endDateObj.setUTCDate(endDateObj.getUTCDate() + 1);
 
-            // Format the end date from the UTC object
-            const dtEnd = `${startDateObj.getUTCFullYear()}${pad(startDateObj.getUTCMonth() + 1)}${pad(startDateObj.getUTCDate())}`;
-            
+            const dtStart = `${startDateObj.getUTCFullYear()}${pad(startDateObj.getUTCMonth()+1)}${pad(startDateObj.getUTCDate())}`;
+            const dtEnd = `${endDateObj.getUTCFullYear()}${pad(endDateObj.getUTCMonth()+1)}${pad(endDateObj.getUTCDate())}`;
+
             const summary = `到期：${e.subject} ${e.chapter} (${e.questions} 題)`;
             const description = `考卷到期：${e.subject} ${e.chapter}\\n題數：${e.questions}\\n來源：考卷清單`;
 
+            const uid = `exam-${e.id}-${Date.now()}@examlist.local`;
+            const dtstamp = toUTCStamp(new Date());
+
             const icsEvent = [
                 'BEGIN:VEVENT',
-                `UID:exam-${e.id}@examlist.local`,
+                `UID:${uid}`,
+                `DTSTAMP:${dtstamp}`,
                 `SUMMARY:${escapeICSText(summary)}`,
                 `DESCRIPTION:${escapeICSText(description)}`,
                 `DTSTART;VALUE=DATE:${dtStart}`,
                 `DTEND;VALUE=DATE:${dtEnd}`,
                 `CATEGORIES:${escapeICSText(e.subject)}`,
                 'TRANSP:TRANSPARENT',
+                'SEQUENCE:0',
                 'END:VEVENT'
-            ].join('\\r\\n');
+            ].join('\r\n');
 
             return icsEvent;
         }
 
-        function escapeICSText(s){ return (s||'').replace(/\\/g, '\\\\').replace(/,/g,'\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n'); }
-        
         function downloadICS(exam){
             const icsEvent = createICSForExam(exam);
             const icsCalendar = [
@@ -594,24 +653,61 @@
                 'VERSION:2.0',
                 'PRODID:-//ExamList//SingleExport//TW',
                 'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH',
                 icsEvent,
                 'END:VCALENDAR'
-            ].join('\\r\\n');
-            downloadFile(`${exam.subject}-${exam.chapter || 'exam'}.ics`.replace(/\s+/g,'_'), icsCalendar);
+            ].join('\r\n');
+            downloadFile(`${(exam.subject+'-'+(exam.chapter || 'exam')).replace(/\s+/g,'_')}.ics`, icsCalendar);
         }
 
         function downloadAllICS(){
-            const events = exams.map(ex => createICSForExam(ex)).join('\\r\\n');
+            const events = exams.map(ex => createICSForExam(ex)).join('\r\n');
             const ics = [
                 'BEGIN:VCALENDAR',
                 'VERSION:2.0',
                 'PRODID:-//ExamList//CalendarExportAll//TW',
                 'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH',
                 'X-WR-CALNAME:考卷清單',
                 events,
                 'END:VCALENDAR'
-            ].join('\\r\\n');
+            ].join('\r\n');
             downloadFile('exams_all.ics', ics);
+        }
+
+        // JSON export/import
+        function exportJSON(){
+            const data = JSON.stringify(exams, null, 2);
+            downloadFile('exams.json', data, 'application/json;charset=utf-8');
+        }
+
+        function importJSON(file){
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e){
+                try{
+                    const parsed = JSON.parse(e.target.result);
+                    if(!Array.isArray(parsed)) throw new Error('JSON 格式錯誤（需為陣列）');
+                    // Basic validation and normalize
+                    const normalized = parsed.map(item => ({
+                        id: item.id || (Date.now()+Math.floor(Math.random()*999)),
+                        subject: item.subject || '未命名',
+                        chapter: item.chapter || '',
+                        questions: Number(item.questions) || 0,
+                        completed: !!item.completed,
+                        corrected: !!item.corrected,
+                        dueDate: item.dueDate || null
+                    }));
+                    if(confirm('匯入將覆蓋現有清單，確定嗎？')) {
+                        exams = normalized;
+                        saveExams(); render();
+                        alert('匯入完成');
+                    }
+                } catch(err){
+                    alert('讀取 JSON 發生錯誤：' + err.message);
+                }
+            };
+            reader.readAsText(file);
         }
 
         G.sortByQuestionsBtn.addEventListener('click', () => { sortState.key = 'questions'; sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; render(); });
@@ -620,6 +716,12 @@
         G.searchBox.addEventListener('input', debounce(() => render(), 180));
         G.addBtn.addEventListener('click', addExam);
         G.exportAllIcs.addEventListener('click', () => downloadAllICS());
+        G.exportJsonBtn.addEventListener('click', exportJSON);
+        G.importJsonFile.addEventListener('change', (ev) => {
+            const f = ev.target.files && ev.target.files[0];
+            if(f) importJSON(f);
+            ev.target.value = '';
+        });
         G.themeToggle.addEventListener('click', () => {
             const current = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
             applyTheme(current === 'light' ? 'dark' : 'light');
@@ -634,6 +736,7 @@
                 loadExams(); render();
             }
         });
+        G.filterSelect.addEventListener('change', () => render());
         function debounce(fn, wait){ let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), wait); }; }
 
         // Pomodoro
@@ -641,6 +744,41 @@
             durations: { pom:25*60, short:5*60, long:15*60 },
             timerId: null, remaining: 25*60, running: false, selectedExamId: null, cycles: 0,
         };
+
+        // WebAudio setup for beep
+        let audioCtx = null;
+        function ensureAudioContext(){
+            if(audioCtx) return audioCtx;
+            try{
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }catch(e){
+                audioCtx = null;
+            }
+            return audioCtx;
+        }
+        function playBeep(){
+            if(!G.pom.enableSound.checked) return;
+            const ctx = ensureAudioContext();
+            if(!ctx) return;
+            if (ctx.state === 'suspended') {
+                // some browsers require resume by user gesture; try to resume
+                ctx.resume().catch(()=>{});
+            }
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'sine';
+            o.frequency.value = 880;
+            g.gain.value = 0.001;
+            o.connect(g);
+            g.connect(ctx.destination);
+            const now = ctx.currentTime;
+            g.gain.setValueAtTime(0.001, now);
+            g.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+            o.start(now);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+            o.stop(now + 0.36);
+        }
+
         function selectPomodoroExam(id){
             const exam = exams.find(e => e.id === id);
             if(!exam){ G.pom.selected.textContent = '（尚未選擇考卷）'; return; }
@@ -669,6 +807,7 @@
                     clearInterval(pom.timerId); pom.timerId = null; pom.running = false;
                     if(mode === 'pom') pom.cycles++;
                     notifyUser('番茄鐘結束', `模式 ${mode} 已完成。`);
+                    playBeep();
                 }
                 updateTimerDisplay(); renderCycleDots();
             }, 1000);
@@ -685,7 +824,7 @@
             pom.remaining = pom.durations[mode];
             updateTimerDisplay();
         }
-        G.pom.start.addEventListener('click', startPomodoro);
+        G.pom.start.addEventListener('click', () => { startPomodoro(); });
         G.pom.pause.addEventListener('click', pausePomodoro);
         G.pom.reset.addEventListener('click', resetPomodoro);
         G.pom.mode.addEventListener('change', () => {
@@ -723,7 +862,71 @@
             }
         }
 
-        // Initial Load
+        // Fullscreen display for pomodoro (custom fullscreen overlay)
+        const pomFsContainer = document.getElementById('pom-fullscreen');
+        G.pomFullscreenToggle.addEventListener('click', () => togglePomFullscreen());
+
+        function togglePomFullscreen(){
+            if(pomFsContainer.style.display === 'none' || pomFsContainer.style.display === ''){
+                // open
+                pomFsContainer.style.display = 'block';
+                pomFsContainer.innerHTML = `
+                <div class="pom-fullscreen" id="pomfs-outer">
+                    <div class="pom-inner">
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <strong style="font-size:22px">番茄鐘（全螢幕）</strong>
+                            <div>
+                                <button id="pomfs-close" style="margin-right:8px" class="theme-toggle">關閉</button>
+                                <button id="pomfs-start" class="icon-btn">開始</button>
+                            </div>
+                        </div>
+                        <div style="margin-top:20px">
+                            <div id="pomfs-display" class="timer-display">25:00</div>
+                            <div style="margin-top:12px">
+                                <button id="pomfs-pause" class="theme-toggle">暫停/繼續</button>
+                                <button id="pomfs-reset" class="theme-toggle">重設</button>
+                            </div>
+                            <div style="margin-top:12px">
+                                <label class="small muted" style="display:flex;align-items:center;gap:8px;justify-content:center">
+                                    <input type="checkbox" id="pomfs-enable-sound" /> 啟用音效
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+                // hook buttons
+                document.getElementById('pomfs-close').addEventListener('click', () => {
+                    pomFsContainer.style.display = 'none';
+                    pomFsContainer.innerHTML = '';
+                });
+                document.getElementById('pomfs-start').addEventListener('click', () => {
+                    // sync sound checkbox
+                    const fsSound = document.getElementById('pomfs-enable-sound');
+                    fsSound.checked = G.pom.enableSound.checked;
+                    startPomodoro();
+                });
+                document.getElementById('pomfs-pause').addEventListener('click', () => {
+                    pausePomodoro();
+                });
+                document.getElementById('pomfs-reset').addEventListener('click', () => {
+                    resetPomodoro();
+                });
+                // reflect display
+                const fsDisplay = document.getElementById('pomfs-display');
+                const fsInterval = setInterval(()=> {
+                    fsDisplay.textContent = G.pom.display.textContent;
+                    // sync the fs sound checkbox to main
+                    const fsSound = document.getElementById('pomfs-enable-sound');
+                    if(fsSound) fsSound.addEventListener('change', (e)=> { G.pom.enableSound.checked = e.target.checked; });
+                    if(pomFsContainer.style.display === 'none') clearInterval(fsInterval);
+                }, 300);
+            } else {
+                pomFsContainer.style.display = 'none';
+                pomFsContainer.innerHTML = '';
+            }
+        }
+
+        // initial load
         loadExams();
         applyTheme(localStorage.getItem('theme') || 'light');
         initPomodoroVisibility();
@@ -736,6 +939,11 @@
             }
         });
         window.EXAM_APP = { exams, saveExams, loadExams, render, downloadAllICS, downloadICS };
+
+        // hook other UI
+        G.exportAllIcs.addEventListener('click', () => downloadAllICS());
+        G.exportJsonBtn.addEventListener('click', exportJSON);
+
     });
     </script>
 </body>
