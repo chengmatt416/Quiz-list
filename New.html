@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>考卷清單與訂正進度（含到期日、匯出日曆、番茄鐘）</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root{
             --bg-color:#f4f7f6;
@@ -222,6 +223,7 @@
                     <button id="pom-fullscreen-toggle" class="icon-btn">番茄鐘全螢幕</button>
                     <button id="export-all-ics" class="icon-btn">匯出全部到日曆</button>
                     <button id="export-json" class="icon-btn">匯出 JSON</button>
+                    <button id="export-pdf" class="icon-btn">匯出 PDF</button>
                     <label for="import-json-file" class="icon-btn" style="cursor:pointer;padding:6px 10px">匯入 JSON</label>
                     <input type="file" id="import-json-file" accept="application/json" style="display:none" />
                     <button id="clear-storage" class="theme-toggle">清除本機資料</button>
@@ -343,6 +345,7 @@
             sortByDueBtn: document.getElementById('sort-by-due'),
             exportAllIcs: document.getElementById('export-all-ics'),
             exportJsonBtn: document.getElementById('export-json'),
+            exportPdfBtn: document.getElementById('export-pdf'),
             importJsonFile: document.getElementById('import-json-file'),
             totalQuestionsEl: document.getElementById('total-questions'),
             themeToggle: document.getElementById('theme-toggle'),
@@ -677,6 +680,77 @@
             downloadFile('exams.json', data, 'application/json;charset=utf-8');
         }
 
+        // PDF export
+        function exportPDF(){
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Set font to support Chinese characters
+            doc.setFont("helvetica");
+            
+            // Title
+            doc.setFontSize(18);
+            doc.text("Exam List", 105, 20, { align: "center" });
+            
+            // Summary statistics
+            let remainingTotal = 0, completedTotal = 0, totalQuestions = 0, correctedTotal = 0;
+            exams.forEach(exam => {
+                totalQuestions += Number(exam.questions || 0);
+                if(exam.completed){
+                    completedTotal += Number(exam.questions || 0);
+                    if(exam.corrected) correctedTotal += Number(exam.questions || 0);
+                } else {
+                    remainingTotal += Number(exam.questions || 0);
+                }
+            });
+            
+            doc.setFontSize(12);
+            let yPos = 35;
+            doc.text(`Total Questions: ${totalQuestions}`, 20, yPos);
+            yPos += 7;
+            doc.text(`Remaining: ${remainingTotal} | Completed: ${completedTotal}`, 20, yPos);
+            yPos += 7;
+            doc.text(`Corrected: ${correctedTotal}`, 20, yPos);
+            yPos += 12;
+            
+            // Table header
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            doc.text("Subject", 20, yPos);
+            doc.text("Chapter", 60, yPos);
+            doc.text("Questions", 110, yPos);
+            doc.text("Status", 145, yPos);
+            doc.text("Due Date", 170, yPos);
+            yPos += 7;
+            
+            // Draw line
+            doc.line(20, yPos - 2, 190, yPos - 2);
+            
+            // Table rows
+            doc.setFont("helvetica", "normal");
+            exams.forEach((exam, idx) => {
+                if (yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                
+                const subject = exam.subject.substring(0, 10);
+                const chapter = exam.chapter.substring(0, 15);
+                const status = exam.completed ? (exam.corrected ? "Done+Corr" : "Done") : "Pending";
+                const dueDate = exam.dueDate ? exam.dueDate : "-";
+                
+                doc.text(subject, 20, yPos);
+                doc.text(chapter, 60, yPos);
+                doc.text(String(exam.questions), 110, yPos);
+                doc.text(status, 145, yPos);
+                doc.text(dueDate, 170, yPos);
+                yPos += 7;
+            });
+            
+            // Save the PDF
+            doc.save('exams.pdf');
+        }
+
         function importJSON(file){
             if(!file) return;
             const reader = new FileReader();
@@ -939,6 +1013,7 @@
         // hook other UI
         G.exportAllIcs.addEventListener('click', () => downloadAllICS());
         G.exportJsonBtn.addEventListener('click', exportJSON);
+        G.exportPdfBtn.addEventListener('click', exportPDF);
 
     });
     </script>
