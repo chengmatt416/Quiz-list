@@ -107,6 +107,7 @@
             display:inline-block; font-size:16px;
         }
         .exam-list{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+        .exam-list.card-view{grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px}
         .exam-item{
             display:flex;align-items:center;padding:12px;border-radius:10px;border:1px solid var(--border-color);
             transition:transform .45s cubic-bezier(.2,.9,.2,1), box-shadow .22s, opacity .22s;
@@ -115,6 +116,18 @@
             overflow:hidden;
             opacity:0; transform: translateY(10px) scale(0.995);
             animation: fadeScaleIn 420ms ease forwards;
+        }
+        .exam-list.card-view .exam-item{
+            flex-direction:column;align-items:stretch;padding:16px;
+        }
+        .exam-list.card-view .exam-item .left{
+            flex-direction:column;align-items:flex-start;gap:10px;
+        }
+        .exam-list.card-view .exam-item .exam-actions{
+            margin-left:0;margin-top:12px;justify-content:flex-start;flex-wrap:wrap;
+        }
+        .exam-list.card-view .exam-item .correction-control{
+            margin-left:0;
         }
         @keyframes fadeScaleIn{
             from{opacity:0; transform:translateY(12px) scale(0.985)}
@@ -237,6 +250,7 @@
                     <button id="sort-by-questions">按題數排序</button>
                     <button id="sort-by-chapter">按章節排序</button>
                     <button id="sort-by-due">依到期日排序</button>
+                    <button id="toggle-card-view" class="theme-toggle">切換卡片檢視</button>
                 </div>
                 <div style="display:flex;gap:6px;align-items:center;margin-left:12px">
                     <select id="filter-select" class="small" title="篩選">
@@ -326,6 +340,8 @@
 
         let exams = [];
         let sortState = { key: 'chapter', direction: 'asc' };
+        let cardViewMode = false;
+
 
         const G = {
             container: document.getElementById('exam-list-container'),
@@ -343,6 +359,7 @@
             sortByQuestionsBtn: document.getElementById('sort-by-questions'),
             sortByChapterBtn: document.getElementById('sort-by-chapter'),
             sortByDueBtn: document.getElementById('sort-by-due'),
+            toggleCardViewBtn: document.getElementById('toggle-card-view'),
             exportAllIcs: document.getElementById('export-all-ics'),
             exportJsonBtn: document.getElementById('export-json'),
             exportPdfBtn: document.getElementById('export-pdf'),
@@ -430,6 +447,7 @@
                 groupDiv.innerHTML = `<h3>${subject}</h3>`;
                 const ul = document.createElement('ul');
                 ul.className = 'exam-list';
+                if(cardViewMode) ul.classList.add('card-view');
                 grouped[subject].forEach(exam => {
                     const li = document.createElement('li');
                     li.className = 'exam-item';
@@ -685,12 +703,12 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            // Set font to support Chinese characters
-            doc.setFont("helvetica");
+            // Note: For proper Chinese character support, we would need to load a Chinese font
+            // For now, we use a card-based layout with romanized text and unicode entities where possible
             
             // Title
             doc.setFontSize(18);
-            doc.text("Exam List", 105, 20, { align: "center" });
+            doc.text("Exam List (考卷清單)", 105, 20, { align: "center" });
             
             // Summary statistics
             let remainingTotal = 0, completedTotal = 0, totalQuestions = 0, correctedTotal = 0;
@@ -711,40 +729,63 @@
             doc.text(`Remaining: ${remainingTotal} | Completed: ${completedTotal}`, 20, yPos);
             yPos += 7;
             doc.text(`Corrected: ${correctedTotal}`, 20, yPos);
-            yPos += 12;
+            yPos += 15;
             
-            // Table header
+            // Card-based layout - 2 cards per row
+            const cardWidth = 85;
+            const cardHeight = 40;
+            const cardMargin = 10;
+            const startX = 20;
+            let currentX = startX;
+            let currentY = yPos;
+            let cardCount = 0;
+            
             doc.setFontSize(10);
-            doc.setFont("helvetica", "bold");
-            doc.text("Subject", 20, yPos);
-            doc.text("Chapter", 60, yPos);
-            doc.text("Questions", 110, yPos);
-            doc.text("Status", 145, yPos);
-            doc.text("Due Date", 170, yPos);
-            yPos += 7;
-            
-            // Draw line
-            doc.line(20, yPos - 2, 190, yPos - 2);
-            
-            // Table rows
-            doc.setFont("helvetica", "normal");
             exams.forEach((exam, idx) => {
-                if (yPos > 270) {
+                // Check if we need a new page
+                if (currentY + cardHeight > 270) {
                     doc.addPage();
-                    yPos = 20;
+                    currentY = 20;
+                    currentX = startX;
+                    cardCount = 0;
                 }
                 
-                const subject = exam.subject.substring(0, 10);
-                const chapter = exam.chapter.substring(0, 15);
-                const status = exam.completed ? (exam.corrected ? "Done+Corr" : "Done") : "Pending";
-                const dueDate = exam.dueDate ? exam.dueDate : "-";
+                // Draw card border with shadow effect
+                doc.setDrawColor(180);
+                doc.setFillColor(exam.completed ? 230 : 250, exam.completed ? 250 : 250, exam.completed ? 230 : 250);
+                doc.roundedRect(currentX, currentY, cardWidth, cardHeight, 3, 3, 'FD');
                 
-                doc.text(subject, 20, yPos);
-                doc.text(chapter, 60, yPos);
-                doc.text(String(exam.questions), 110, yPos);
-                doc.text(status, 145, yPos);
-                doc.text(dueDate, 170, yPos);
-                yPos += 7;
+                // Card content
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "bold");
+                doc.text(exam.subject, currentX + 5, currentY + 8);
+                
+                doc.setFontSize(9);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Chapter: ${exam.chapter}`, currentX + 5, currentY + 15);
+                doc.text(`Questions: ${exam.questions}`, currentX + 5, currentY + 21);
+                
+                const status = exam.completed ? (exam.corrected ? "Done + Corrected" : "Done") : "Pending";
+                doc.setFont("helvetica", "bold");
+                doc.text(`Status: ${status}`, currentX + 5, currentY + 27);
+                
+                doc.setFont("helvetica", "normal");
+                if(exam.dueDate){
+                    doc.text(`Due: ${exam.dueDate}`, currentX + 5, currentY + 33);
+                } else {
+                    doc.text(`Due: Not set`, currentX + 5, currentY + 33);
+                }
+                
+                // Move to next position
+                cardCount++;
+                if(cardCount % 2 === 0){
+                    // Move to next row
+                    currentX = startX;
+                    currentY += cardHeight + cardMargin;
+                } else {
+                    // Move to next column
+                    currentX += cardWidth + cardMargin;
+                }
             });
             
             // Save the PDF
@@ -783,6 +824,7 @@
         G.sortByQuestionsBtn.addEventListener('click', () => { sortState.key = 'questions'; sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; render(); });
         G.sortByChapterBtn.addEventListener('click', () => { sortState.key = 'chapter'; sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; render(); });
         G.sortByDueBtn.addEventListener('click', () => { sortState.key = 'dueDate'; sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; render(); });
+        G.toggleCardViewBtn.addEventListener('click', () => { cardViewMode = !cardViewMode; localStorage.setItem('cardViewMode', cardViewMode); render(); });
         G.searchBox.addEventListener('input', debounce(() => render(), 180));
         G.addBtn.addEventListener('click', addExam);
         G.exportAllIcs.addEventListener('click', () => downloadAllICS());
@@ -834,19 +876,35 @@
                 // some browsers require resume by user gesture; try to resume
                 ctx.resume().catch(()=>{});
             }
-            const o = ctx.createOscillator();
-            const g = ctx.createGain();
-            o.type = 'sine';
-            o.frequency.value = 880;
-            g.gain.value = 0.001;
-            o.connect(g);
-            g.connect(ctx.destination);
+            // First beep
+            const o1 = ctx.createOscillator();
+            const g1 = ctx.createGain();
+            o1.type = 'sine';
+            o1.frequency.value = 880;
+            g1.gain.value = 0.001;
+            o1.connect(g1);
+            g1.connect(ctx.destination);
             const now = ctx.currentTime;
-            g.gain.setValueAtTime(0.001, now);
-            g.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
-            o.start(now);
-            g.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
-            o.stop(now + 0.36);
+            g1.gain.setValueAtTime(0.001, now);
+            g1.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+            o1.start(now);
+            g1.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+            o1.stop(now + 0.36);
+            
+            // Second beep (starts after a short pause)
+            const o2 = ctx.createOscillator();
+            const g2 = ctx.createGain();
+            o2.type = 'sine';
+            o2.frequency.value = 880;
+            g2.gain.value = 0.001;
+            o2.connect(g2);
+            g2.connect(ctx.destination);
+            const beep2Start = now + 0.5;
+            g2.gain.setValueAtTime(0.001, beep2Start);
+            g2.gain.exponentialRampToValueAtTime(0.18, beep2Start + 0.02);
+            o2.start(beep2Start);
+            g2.gain.exponentialRampToValueAtTime(0.0001, beep2Start + 0.35);
+            o2.stop(beep2Start + 0.36);
         }
 
         function selectPomodoroExam(id){
@@ -998,6 +1056,7 @@
 
         // initial load
         loadExams();
+        cardViewMode = localStorage.getItem('cardViewMode') === 'true';
         applyTheme(localStorage.getItem('theme') || 'light');
         initPomodoroVisibility();
         render();
