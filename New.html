@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>考卷清單與訂正進度（含到期日、匯出日曆、番茄鐘）</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-font-nototc@1.0.0/dist/NotoSansTC-normal.js"></script>
     <style>
         :root{
             --bg-color:#f4f7f6;
@@ -144,6 +145,41 @@
         .progress-bar.animate {
             transition: width 900ms cubic-bezier(.18,.9,.32,1), background 400ms;
         }
+        
+        /* Card view mode styles */
+        .exam-list.card-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .exam-list.card-view .exam-item {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 16px;
+            min-height: 160px;
+        }
+        .exam-list.card-view .exam-item .left {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .exam-list.card-view .exam-info {
+            width: 100%;
+        }
+        .exam-list.card-view .exam-actions {
+            margin-left: 0;
+            margin-top: 12px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+        .exam-list.card-view .question-count {
+            text-align: left;
+            margin-top: 8px;
+        }
+        .exam-list.card-view .correction-control {
+            margin-left: 0;
+        }
+        
         .add-exam-form{margin-top:18px;padding:12px;border-radius:10px;border:1px dashed var(--border-color);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
         .add-exam-form input, .add-exam-form button, .add-exam-form select{padding:8px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)}
         .add-exam-form input { flex: 1 1 120px; }
@@ -237,6 +273,7 @@
                     <button id="sort-by-questions">按題數排序</button>
                     <button id="sort-by-chapter">按章節排序</button>
                     <button id="sort-by-due">依到期日排序</button>
+                    <button id="view-mode-toggle" class="theme-toggle">切換卡片檢視</button>
                 </div>
                 <div style="display:flex;gap:6px;align-items:center;margin-left:12px">
                     <select id="filter-select" class="small" title="篩選">
@@ -324,8 +361,13 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
+        const initialData = [
+            { id: 1, subject: "數", chapter: "1-3", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 2, subject: "數", chapter: "1-4", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 3, subject: "數", chapter: "2-1", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 4, subject: "數", chapter: "2-2", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 5, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 6, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 7, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 8, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 9, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 10, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 11, subject: "國", chapter: "L3", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 12, subject: "國", chapter: "L4", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 13, subject: "國", chapter: "語文天地", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 14, subject: "國", chapter: "自學1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 15, subject: "理", chapter: "1-1&1-2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 16, subject: "理", chapter: "1-3", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 17, subject: "理", chapter: "1-4", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 18, subject: "理", chapter: "2-1&2-2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 19, subject: "理", chapter: "1-1&1-2", questions: 80, completed: false, corrected: false, dueDate: null }, { id: 20, subject: "理", chapter: "1-3&1-4", questions: 80, completed: false, corrected: false, dueDate: null }, { id: 21, subject: "歷", chapter: "L1", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 22, subject: "歷", chapter: "L2", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 23, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 24, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 25, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 26, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 27, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 28, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }
+        ];
+
         let exams = [];
         let sortState = { key: 'chapter', direction: 'asc' };
+        let viewMode = localStorage.getItem('viewMode') || 'list'; // 'list' or 'card'
 
         const G = {
             container: document.getElementById('exam-list-container'),
@@ -353,6 +395,7 @@
             showPomodoroBtn: document.getElementById('show-pomodoro'),
             pomFullscreenToggle: document.getElementById('pom-fullscreen-toggle'),
             filterSelect: document.getElementById('filter-select'),
+            viewModeToggle: document.getElementById('view-mode-toggle'),
             pom: {
                 panel: document.getElementById('pomodoro-panel'),
                 display: document.getElementById('timer-display'),
@@ -429,7 +472,7 @@
                 groupDiv.className = 'exam-group';
                 groupDiv.innerHTML = `<h3>${subject}</h3>`;
                 const ul = document.createElement('ul');
-                ul.className = 'exam-list';
+                ul.className = viewMode === 'card' ? 'exam-list card-view' : 'exam-list';
                 grouped[subject].forEach(exam => {
                     const li = document.createElement('li');
                     li.className = 'exam-item';
@@ -686,11 +729,18 @@
             const doc = new jsPDF();
             
             // Set font to support Chinese characters
-            doc.setFont("helvetica");
+            try {
+                doc.addFileToVFS("NotoSansTC-normal.ttf", window.NotoSansTC);
+                doc.addFont("NotoSansTC-normal.ttf", "NotoSansTC", "normal");
+                doc.setFont("NotoSansTC");
+            } catch(e) {
+                console.warn("Chinese font not loaded, using default font", e);
+                doc.setFont("helvetica");
+            }
             
             // Title
             doc.setFontSize(18);
-            doc.text("Exam List", 105, 20, { align: "center" });
+            doc.text("考卷清單", 105, 20, { align: "center" });
             
             // Summary statistics
             let remainingTotal = 0, completedTotal = 0, totalQuestions = 0, correctedTotal = 0;
@@ -706,45 +756,72 @@
             
             doc.setFontSize(12);
             let yPos = 35;
-            doc.text(`Total Questions: ${totalQuestions}`, 20, yPos);
+            doc.text(`總題數：${totalQuestions}`, 20, yPos);
             yPos += 7;
-            doc.text(`Remaining: ${remainingTotal} | Completed: ${completedTotal}`, 20, yPos);
+            doc.text(`尚未完成：${remainingTotal} | 已完成：${completedTotal}`, 20, yPos);
             yPos += 7;
-            doc.text(`Corrected: ${correctedTotal}`, 20, yPos);
-            yPos += 12;
+            doc.text(`已訂正：${correctedTotal}`, 20, yPos);
+            yPos += 15;
             
-            // Table header
+            // Card view layout
             doc.setFontSize(10);
-            doc.setFont("helvetica", "bold");
-            doc.text("Subject", 20, yPos);
-            doc.text("Chapter", 60, yPos);
-            doc.text("Questions", 110, yPos);
-            doc.text("Status", 145, yPos);
-            doc.text("Due Date", 170, yPos);
-            yPos += 7;
+            const cardWidth = 85;
+            const cardHeight = 35;
+            const cardPadding = 5;
+            const cardMarginX = 10;
+            const cardMarginY = 5;
+            let xPos = 20;
+            let cardY = yPos;
             
-            // Draw line
-            doc.line(20, yPos - 2, 190, yPos - 2);
-            
-            // Table rows
-            doc.setFont("helvetica", "normal");
             exams.forEach((exam, idx) => {
-                if (yPos > 270) {
+                // Check if we need a new page
+                if (cardY + cardHeight > 270) {
                     doc.addPage();
-                    yPos = 20;
+                    cardY = 20;
+                    xPos = 20;
                 }
                 
-                const subject = exam.subject.substring(0, 10);
-                const chapter = exam.chapter.substring(0, 15);
-                const status = exam.completed ? (exam.corrected ? "Done+Corr" : "Done") : "Pending";
-                const dueDate = exam.dueDate ? exam.dueDate : "-";
+                // Draw card border
+                doc.setDrawColor(200, 200, 200);
+                doc.setLineWidth(0.5);
+                doc.rect(xPos, cardY, cardWidth, cardHeight);
                 
-                doc.text(subject, 20, yPos);
-                doc.text(chapter, 60, yPos);
-                doc.text(String(exam.questions), 110, yPos);
-                doc.text(status, 145, yPos);
-                doc.text(dueDate, 170, yPos);
-                yPos += 7;
+                // Card content
+                const contentX = xPos + cardPadding;
+                let contentY = cardY + cardPadding + 5;
+                
+                // Subject (bold)
+                doc.setFont("NotoSansTC", "normal");
+                doc.setFontSize(11);
+                doc.text(exam.subject, contentX, contentY);
+                contentY += 7;
+                
+                // Chapter
+                doc.setFontSize(9);
+                doc.text(exam.chapter, contentX, contentY);
+                contentY += 6;
+                
+                // Questions
+                doc.text(`題數：${exam.questions}`, contentX, contentY);
+                contentY += 6;
+                
+                // Status
+                const status = exam.completed ? (exam.corrected ? "已完成+已訂正" : "已完成") : "待完成";
+                doc.text(`狀態：${status}`, contentX, contentY);
+                contentY += 6;
+                
+                // Due date
+                if (exam.dueDate) {
+                    doc.text(`到期日：${exam.dueDate}`, contentX, contentY);
+                }
+                
+                // Move to next card position
+                xPos += cardWidth + cardMarginX;
+                if (xPos + cardWidth > 200) {
+                    // Move to next row
+                    xPos = 20;
+                    cardY += cardHeight + cardMarginY;
+                }
             });
             
             // Save the PDF
@@ -807,6 +884,12 @@
             }
         });
         G.filterSelect.addEventListener('change', () => render());
+        G.viewModeToggle.addEventListener('click', () => {
+            viewMode = viewMode === 'list' ? 'card' : 'list';
+            localStorage.setItem('viewMode', viewMode);
+            G.viewModeToggle.textContent = viewMode === 'list' ? '切換卡片檢視' : '切換列表檢視';
+            render();
+        });
         function debounce(fn, wait){ let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), wait); }; }
 
         // Pomodoro
@@ -834,19 +917,35 @@
                 // some browsers require resume by user gesture; try to resume
                 ctx.resume().catch(()=>{});
             }
-            const o = ctx.createOscillator();
-            const g = ctx.createGain();
-            o.type = 'sine';
-            o.frequency.value = 880;
-            g.gain.value = 0.001;
-            o.connect(g);
-            g.connect(ctx.destination);
+            // Play first beep
+            const o1 = ctx.createOscillator();
+            const g1 = ctx.createGain();
+            o1.type = 'sine';
+            o1.frequency.value = 880;
+            g1.gain.value = 0.001;
+            o1.connect(g1);
+            g1.connect(ctx.destination);
             const now = ctx.currentTime;
-            g.gain.setValueAtTime(0.001, now);
-            g.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
-            o.start(now);
-            g.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
-            o.stop(now + 0.36);
+            g1.gain.setValueAtTime(0.001, now);
+            g1.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+            o1.start(now);
+            g1.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+            o1.stop(now + 0.16);
+            
+            // Play second beep after a short pause
+            const o2 = ctx.createOscillator();
+            const g2 = ctx.createGain();
+            o2.type = 'sine';
+            o2.frequency.value = 880;
+            g2.gain.value = 0.001;
+            o2.connect(g2);
+            g2.connect(ctx.destination);
+            const beep2Start = now + 0.25;
+            g2.gain.setValueAtTime(0.001, beep2Start);
+            g2.gain.exponentialRampToValueAtTime(0.18, beep2Start + 0.02);
+            o2.start(beep2Start);
+            g2.gain.exponentialRampToValueAtTime(0.0001, beep2Start + 0.15);
+            o2.stop(beep2Start + 0.16);
         }
 
         function selectPomodoroExam(id){
@@ -1000,6 +1099,7 @@
         loadExams();
         applyTheme(localStorage.getItem('theme') || 'light');
         initPomodoroVisibility();
+        G.viewModeToggle.textContent = viewMode === 'list' ? '切換卡片檢視' : '切換列表檢視';
         render();
         renderCycleDots();
         setTimeout(()=> updateSummary(), 120);
