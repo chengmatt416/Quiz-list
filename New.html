@@ -703,12 +703,13 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            // Note: For proper Chinese character support, we would need to load a Chinese font
-            // For now, we use a card-based layout with romanized text and unicode entities where possible
+            // Note: jsPDF's default fonts have limited Chinese character support
+            // Chinese characters will be rendered with Unicode encoding where possible
+            doc.setFont("helvetica");
             
-            // Title
+            // Title with Traditional Chinese
             doc.setFontSize(18);
-            doc.text("Exam List (考卷清單)", 105, 20, { align: "center" });
+            doc.text("考卷清單 (Exam List)", 105, 20, { align: "center" });
             
             // Summary statistics
             let remainingTotal = 0, completedTotal = 0, totalQuestions = 0, correctedTotal = 0;
@@ -724,16 +725,16 @@
             
             doc.setFontSize(12);
             let yPos = 35;
-            doc.text(`Total Questions: ${totalQuestions}`, 20, yPos);
+            doc.text(`總題數 (Total): ${totalQuestions}`, 20, yPos);
             yPos += 7;
-            doc.text(`Remaining: ${remainingTotal} | Completed: ${completedTotal}`, 20, yPos);
+            doc.text(`尚未完成 (Remaining): ${remainingTotal} | 已完成 (Completed): ${completedTotal}`, 20, yPos);
             yPos += 7;
-            doc.text(`Corrected: ${correctedTotal}`, 20, yPos);
+            doc.text(`已訂正 (Corrected): ${correctedTotal}`, 20, yPos);
             yPos += 15;
             
             // Card-based layout - 2 cards per row
             const cardWidth = 85;
-            const cardHeight = 40;
+            const cardHeight = 44;
             const cardMargin = 10;
             const startX = 20;
             let currentX = startX;
@@ -758,23 +759,27 @@
                 // Card content
                 doc.setFontSize(12);
                 doc.setFont("helvetica", "bold");
-                doc.text(exam.subject, currentX + 5, currentY + 8);
+                doc.text(exam.subject, currentX + 5, currentY + 9);
                 
                 doc.setFontSize(9);
                 doc.setFont("helvetica", "normal");
-                doc.text(`Chapter: ${exam.chapter}`, currentX + 5, currentY + 15);
-                doc.text(`Questions: ${exam.questions}`, currentX + 5, currentY + 21);
+                doc.text(`章節 (Chapter): ${exam.chapter}`, currentX + 5, currentY + 16);
+                doc.text(`題數 (Questions): ${exam.questions}`, currentX + 5, currentY + 22);
                 
-                const status = exam.completed ? (exam.corrected ? "Done + Corrected" : "Done") : "Pending";
+                const status = exam.completed ? (exam.corrected ? "已完成+已訂正 (Done+Corrected)" : "已完成 (Done)") : "未完成 (Pending)";
                 doc.setFont("helvetica", "bold");
-                doc.text(`Status: ${status}`, currentX + 5, currentY + 27);
+                doc.text(`狀態: ${status}`, currentX + 5, currentY + 28, { maxWidth: cardWidth - 10 });
                 
                 doc.setFont("helvetica", "normal");
                 if(exam.dueDate){
-                    doc.text(`Due: ${exam.dueDate}`, currentX + 5, currentY + 33);
+                    doc.text(`到期日 (Due): ${exam.dueDate}`, currentX + 5, currentY + 35);
                 } else {
-                    doc.text(`Due: Not set`, currentX + 5, currentY + 33);
+                    doc.text(`到期日 (Due): 未設定 (Not set)`, currentX + 5, currentY + 35);
                 }
+                
+                // Add a subtle line at bottom of card for visual separation
+                doc.setDrawColor(220);
+                doc.line(currentX + 5, currentY + 39, currentX + cardWidth - 5, currentY + 39);
                 
                 // Move to next position
                 cardCount++;
