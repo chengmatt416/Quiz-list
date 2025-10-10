@@ -168,6 +168,7 @@
             opacity: 0;
             transform: translateY(24px) scale(.98);
             pointer-events: none;
+            visibility: hidden;
         }
         @keyframes popIn{
             from{opacity:0; transform: translateY(24px) scale(.98)}
@@ -764,19 +765,23 @@
                 // some browsers require resume by user gesture; try to resume
                 ctx.resume().catch(()=>{});
             }
-            const o = ctx.createOscillator();
-            const g = ctx.createGain();
-            o.type = 'sine';
-            o.frequency.value = 880;
-            g.gain.value = 0.001;
-            o.connect(g);
-            g.connect(ctx.destination);
+            // Continuous beeps - play 5 beeps with pauses
             const now = ctx.currentTime;
-            g.gain.setValueAtTime(0.001, now);
-            g.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
-            o.start(now);
-            g.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
-            o.stop(now + 0.36);
+            for(let i = 0; i < 5; i++){
+                const beepStart = now + (i * 0.5);
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.type = 'sine';
+                o.frequency.value = 880;
+                g.gain.value = 0.001;
+                o.connect(g);
+                g.connect(ctx.destination);
+                g.gain.setValueAtTime(0.001, beepStart);
+                g.gain.exponentialRampToValueAtTime(0.18, beepStart + 0.02);
+                o.start(beepStart);
+                g.gain.exponentialRampToValueAtTime(0.0001, beepStart + 0.35);
+                o.stop(beepStart + 0.36);
+            }
         }
 
         function selectPomodoroExam(id){
