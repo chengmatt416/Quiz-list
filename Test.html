@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>考卷清單與訂正進度（含到期日、匯出日曆、番茄鐘）</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root{
             --bg-color:#f4f7f6;
@@ -106,6 +108,7 @@
             display:inline-block; font-size:16px;
         }
         .exam-list{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+        .exam-list.card-view{grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px}
         .exam-item{
             display:flex;align-items:center;padding:12px;border-radius:10px;border:1px solid var(--border-color);
             transition:transform .45s cubic-bezier(.2,.9,.2,1), box-shadow .22s, opacity .22s;
@@ -114,6 +117,18 @@
             overflow:hidden;
             opacity:0; transform: translateY(10px) scale(0.995);
             animation: fadeScaleIn 420ms ease forwards;
+        }
+        .exam-list.card-view .exam-item{
+            flex-direction:column;align-items:stretch;padding:16px;
+        }
+        .exam-list.card-view .exam-item .left{
+            flex-direction:column;align-items:flex-start;gap:10px;
+        }
+        .exam-list.card-view .exam-item .exam-actions{
+            margin-left:0;margin-top:12px;justify-content:flex-start;flex-wrap:wrap;
+        }
+        .exam-list.card-view .exam-item .correction-control{
+            margin-left:0;
         }
         @keyframes fadeScaleIn{
             from{opacity:0; transform:translateY(12px) scale(0.985)}
@@ -222,8 +237,11 @@
                 <div class="top-actions">
                     <button id="show-pomodoro" class="icon-btn">顯示番茄鐘</button>
                     <button id="pom-fullscreen-toggle" class="icon-btn">番茄鐘全螢幕</button>
+                    <button id="srs-auto-plan" class="icon-btn">SRS 自動規劃</button>
+                    <button id="export-srs-report" class="icon-btn">匯出 SRS 報告</button>
                     <button id="export-all-ics" class="icon-btn">匯出全部到日曆</button>
                     <button id="export-json" class="icon-btn">匯出 JSON</button>
+                    <button id="export-pdf" class="icon-btn">匯出 PDF</button>
                     <label for="import-json-file" class="icon-btn" style="cursor:pointer;padding:6px 10px">匯入 JSON</label>
                     <input type="file" id="import-json-file" accept="application/json" style="display:none" />
                     <button id="clear-storage" class="theme-toggle">清除本機資料</button>
@@ -237,6 +255,7 @@
                     <button id="sort-by-questions">按題數排序</button>
                     <button id="sort-by-chapter">按章節排序</button>
                     <button id="sort-by-due">依到期日排序</button>
+                    <button id="toggle-card-view" class="theme-toggle">切換卡片檢視</button>
                 </div>
                 <div style="display:flex;gap:6px;align-items:center;margin-left:12px">
                     <select id="filter-select" class="small" title="篩選">
@@ -324,12 +343,12 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
-        const initialData = [
-            { id: 1, subject: "數", chapter: "1-3", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 2, subject: "數", chapter: "1-4", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 3, subject: "數", chapter: "2-1", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 4, subject: "數", chapter: "2-2", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 5, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 6, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 7, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 8, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 9, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 10, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 11, subject: "國", chapter: "L3", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 12, subject: "國", chapter: "L4", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 13, subject: "國", chapter: "語文天地", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 14, subject: "國", chapter: "自學1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 15, subject: "理", chapter: "1-1&1-2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 16, subject: "理", chapter: "1-3", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 17, subject: "理", chapter: "1-4", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 18, subject: "理", chapter: "2-1&2-2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 19, subject: "理", chapter: "1-1&1-2", questions: 80, completed: false, corrected: false, dueDate: null }, { id: 20, subject: "理", chapter: "1-3&1-4", questions: 80, completed: false, corrected: false, dueDate: null }, { id: 21, subject: "歷", chapter: "L1", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 22, subject: "歷", chapter: "L2", questions: 70, completed: false, corrected: false, dueDate: null }, { id: 23, subject: "地", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 24, subject: "地", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 25, subject: "公", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 26, subject: "公", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 27, subject: "歷", chapter: "L1", questions: 50, completed: false, corrected: false, dueDate: null }, { id: 28, subject: "歷", chapter: "L2", questions: 50, completed: false, corrected: false, dueDate: null }
-        ];
+        
 
         let exams = [];
         let sortState = { key: 'chapter', direction: 'asc' };
+        let cardViewMode = false;
+
 
         const G = {
             container: document.getElementById('exam-list-container'),
@@ -347,9 +366,13 @@
             sortByQuestionsBtn: document.getElementById('sort-by-questions'),
             sortByChapterBtn: document.getElementById('sort-by-chapter'),
             sortByDueBtn: document.getElementById('sort-by-due'),
+            toggleCardViewBtn: document.getElementById('toggle-card-view'),
             exportAllIcs: document.getElementById('export-all-ics'),
             exportJsonBtn: document.getElementById('export-json'),
+            exportPdfBtn: document.getElementById('export-pdf'),
             importJsonFile: document.getElementById('import-json-file'),
+            srsAutoPlanBtn: document.getElementById('srs-auto-plan'),
+            exportSrsReportBtn: document.getElementById('export-srs-report'),
             totalQuestionsEl: document.getElementById('total-questions'),
             themeToggle: document.getElementById('theme-toggle'),
             clearStorageBtn: document.getElementById('clear-storage'),
@@ -374,7 +397,7 @@
         function loadExams(){
             const s = localStorage.getItem('examsList');
             if(s){
-                exams = JSON.parse(s).map(e => ({ corrected:false, dueDate:null, ...e }));
+                exams = JSON.parse(s).map(e => ({ corrected:false, dueDate:null, srsLevel:0, srsLastReview:null, srsNextReview:null, ...e }));
             } else {
                 exams = initialData.slice();
             }
@@ -433,6 +456,7 @@
                 groupDiv.innerHTML = `<h3>${subject}</h3>`;
                 const ul = document.createElement('ul');
                 ul.className = 'exam-list';
+                if(cardViewMode) ul.classList.add('card-view');
                 grouped[subject].forEach(exam => {
                     const li = document.createElement('li');
                     li.className = 'exam-item';
@@ -448,6 +472,13 @@
                         const label = overdue ? `已過期 ${Math.abs(diffDays)} 天` : (diffDays === 0 ? '到期：今天' : `到期：${diffDays} 天後`);
                         dueHtml = `<span class="due-date ${overdue ? 'overdue': ''}" title="${formatDate(due)}">${label}</span>`;
                     }
+                    
+                    // SRS level display
+                    let srsHtml = '';
+                    if(exam.srsLevel && exam.srsLevel > 0){
+                        srsHtml = `<span class="pill small" style="margin-left:8px;background:#e8f5e9;color:#2e7d32">SRS ${exam.srsLevel}</span>`;
+                    }
+                    
                     li.innerHTML = `
                         <div class="left">
                             <input type="checkbox" class="completion-checkbox" data-id="${exam.id}" ${exam.completed ? 'checked' : ''} />
@@ -455,12 +486,14 @@
                                 <div>
                                     <span class="chapter">${escapeHtml(exam.chapter)}</span>
                                     ${dueHtml}
+                                    ${srsHtml}
                                 </div>
                                 <div class="meta small muted">${escapeHtml(exam.subject)} ・ <span class="meta-questions">${exam.questions} 題</span></div>
                             </div>
                         </div>
                         <div class="exam-actions">
                             <label class="correction-control"><input type="checkbox" class="correction-checkbox" data-id="${exam.id}" ${exam.corrected ? 'checked' : ''} /> 訂正</label>
+                            ${exam.completed && exam.corrected ? `<button class="icon-btn srs-advance-btn small" data-id="${exam.id}">SRS+</button>` : ''}
                             <button class="icon-btn edit-btn small" data-id="${exam.id}">編輯</button>
                             <button class="icon-btn ics-btn small" data-id="${exam.id}">匯出日曆</button>
                             <button class="delete-btn" data-id="${exam.id}" title="刪除">&times;</button>
@@ -484,6 +517,11 @@
                 btn.addEventListener('click', e => {
                     const exam = exams.find(x => x.id === Number(btn.dataset.id));
                     if(exam) downloadICS(exam);
+                });
+            });
+            document.querySelectorAll('.srs-advance-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    advanceSRSLevel(Number(btn.dataset.id));
                 });
             });
             document.querySelectorAll('.chapter').forEach(el => {
@@ -565,7 +603,8 @@
             if(!subject || !chapter || questions <= 0) return alert('請填科目、章節與題數（題數需大於 0）');
             exams.push({
                 id: Date.now()+Math.floor(Math.random()*999),
-                subject, chapter, questions, completed:false, corrected:false, dueDate: dueVal ? dueVal : null
+                subject, chapter, questions, completed:false, corrected:false, dueDate: dueVal ? dueVal : null,
+                srsLevel: 0, srsLastReview: null, srsNextReview: null
             });
             saveExams();
             render();
@@ -683,6 +722,103 @@
             downloadFile('exams.json', data, 'application/json;charset=utf-8');
         }
 
+        // PDF export with Traditional Chinese support
+        async function exportPDF(){
+            // Check if jsPDF is available
+            if (!window.jspdf && !window.jsPDF) {
+                alert('PDF 匯出功能載入中，請稍後再試');
+                return;
+            }
+            const { jsPDF } = window.jspdf || window;
+            
+            // Create a temporary container for rendering
+            const container = document.createElement('div');
+            container.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:white;padding:30px;font-family:Arial,sans-serif;';
+            document.body.appendChild(container);
+            
+            // Summary statistics
+            let remainingTotal = 0, completedTotal = 0, totalQuestions = 0, correctedTotal = 0;
+            exams.forEach(exam => {
+                totalQuestions += Number(exam.questions || 0);
+                if(exam.completed){
+                    completedTotal += Number(exam.questions || 0);
+                    if(exam.corrected) correctedTotal += Number(exam.questions || 0);
+                } else {
+                    remainingTotal += Number(exam.questions || 0);
+                }
+            });
+            
+            // Build HTML content with Chinese characters
+            let html = `
+                <div style="text-align:center;font-size:24px;font-weight:bold;margin-bottom:20px;color:#2c3e50;">
+                    考卷清單
+                </div>
+                <div style="font-size:14px;margin-bottom:25px;line-height:1.8;color:#333;">
+                    <div>總題數: ${totalQuestions}</div>
+                    <div>尚未完成: ${remainingTotal} | 已完成: ${completedTotal}</div>
+                    <div>已訂正: ${correctedTotal}</div>
+                </div>
+            `;
+            
+            // Add exam cards
+            exams.forEach((exam, idx) => {
+                const bgColor = exam.completed ? '#e6fae6' : '#fafafa';
+                const status = exam.completed ? (exam.corrected ? "已完成+已訂正" : "已完成") : "未完成";
+                const dueText = exam.dueDate ? exam.dueDate : "未設定";
+                
+                html += `
+                    <div style="border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:12px;background:${bgColor};">
+                        <div style="font-size:16px;font-weight:bold;margin-bottom:8px;color:#2c3e50;">${exam.subject}</div>
+                        <div style="font-size:12px;line-height:1.6;color:#555;">
+                            <div>章節: ${exam.chapter}</div>
+                            <div>題數: ${exam.questions}</div>
+                            <div style="font-weight:bold;">狀態: ${status}</div>
+                            <div>到期日: ${dueText}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            // Render to canvas with html2canvas (supports Chinese fonts)
+            try {
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+                
+                // Create PDF and add the rendered image
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                // If content is too tall, split into multiple pages
+                const pageHeight = 295; // A4 height in mm
+                let heightLeft = imgHeight;
+                let position = 0;
+                
+                doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                doc.save('exams.pdf');
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                alert('PDF 匯出失敗，請稍後再試');
+            } finally {
+                // Clean up
+                document.body.removeChild(container);
+            }
+        }
+
         function importJSON(file){
             if(!file) return;
             const reader = new FileReader();
@@ -698,7 +834,10 @@
                         questions: Number(item.questions) || 0,
                         completed: !!item.completed,
                         corrected: !!item.corrected,
-                        dueDate: item.dueDate || null
+                        dueDate: item.dueDate || null,
+                        srsLevel: item.srsLevel || 0,
+                        srsLastReview: item.srsLastReview || null,
+                        srsNextReview: item.srsNextReview || null
                     }));
                     if(confirm('匯入將覆蓋現有清單，確定嗎？')) {
                         exams = normalized;
@@ -712,9 +851,208 @@
             reader.readAsText(file);
         }
 
+        // SRS (Spaced Repetition System) functions
+        // SRS intervals in days: 1, 3, 7, 14, 30, 60, 120
+        const SRS_INTERVALS = [1, 3, 7, 14, 30, 60, 120];
+
+        function srsAutoPlan() {
+            if (!exams || exams.length === 0) {
+                alert('沒有考卷可以規劃');
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let updatedCount = 0;
+            exams.forEach(exam => {
+                // Initialize SRS data if not present
+                if (exam.srsLevel === undefined) exam.srsLevel = 0;
+                if (!exam.srsLastReview) exam.srsLastReview = null;
+                if (!exam.srsNextReview) exam.srsNextReview = null;
+
+                // Only plan for completed exams without a next review date
+                if (exam.completed && !exam.srsNextReview) {
+                    const nextReviewDate = new Date(today);
+                    const interval = SRS_INTERVALS[Math.min(exam.srsLevel, SRS_INTERVALS.length - 1)];
+                    nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+                    
+                    exam.srsNextReview = formatDate(nextReviewDate);
+                    exam.dueDate = exam.srsNextReview;
+                    updatedCount++;
+                }
+            });
+
+            saveExams();
+            render();
+            alert(`SRS 自動規劃完成！\n已為 ${updatedCount} 個考卷設定複習日期`);
+        }
+
+        function advanceSRSLevel(examId) {
+            const exam = exams.find(e => e.id === examId);
+            if (!exam) return;
+
+            if (exam.srsLevel === undefined) exam.srsLevel = 0;
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            exam.srsLastReview = formatDate(today);
+            exam.srsLevel = Math.min(exam.srsLevel + 1, SRS_INTERVALS.length - 1);
+            
+            const nextReviewDate = new Date(today);
+            const interval = SRS_INTERVALS[exam.srsLevel];
+            nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+            
+            exam.srsNextReview = formatDate(nextReviewDate);
+            exam.dueDate = exam.srsNextReview;
+            
+            saveExams();
+            render();
+        }
+
+        async function exportSRSReport() {
+            // Check if jsPDF is available
+            if (!window.jspdf && !window.jsPDF) {
+                alert('PDF 匯出功能載入中，請稍後再試');
+                return;
+            }
+            const { jsPDF } = window.jspdf || window;
+            
+            // Create a temporary container for rendering
+            const container = document.createElement('div');
+            container.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:white;padding:30px;font-family:Arial,sans-serif;';
+            document.body.appendChild(container);
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Calculate SRS statistics
+            const srsExams = exams.filter(e => e.srsLevel !== undefined && e.srsLevel > 0);
+            const dueToday = srsExams.filter(e => {
+                if (!e.srsNextReview) return false;
+                const reviewDate = new Date(e.srsNextReview);
+                reviewDate.setHours(0, 0, 0, 0);
+                return reviewDate.getTime() === today.getTime();
+            }).length;
+            
+            const overdue = srsExams.filter(e => {
+                if (!e.srsNextReview) return false;
+                const reviewDate = new Date(e.srsNextReview);
+                reviewDate.setHours(0, 0, 0, 0);
+                return reviewDate < today;
+            }).length;
+            
+            const upcoming = srsExams.filter(e => {
+                if (!e.srsNextReview) return false;
+                const reviewDate = new Date(e.srsNextReview);
+                reviewDate.setHours(0, 0, 0, 0);
+                const diffDays = Math.ceil((reviewDate - today) / (1000 * 60 * 60 * 24));
+                return diffDays > 0 && diffDays <= 7;
+            }).length;
+            
+            // Build HTML content
+            let html = `
+                <div style="text-align:center;font-size:24px;font-weight:bold;margin-bottom:20px;color:#2c3e50;">
+                    SRS 複習報告
+                </div>
+                <div style="font-size:14px;margin-bottom:25px;line-height:1.8;color:#333;">
+                    <div>報告日期: ${formatDate(today)}</div>
+                    <div>總複習項目: ${srsExams.length}</div>
+                    <div>今日到期: ${dueToday} | 已過期: ${overdue} | 七天內: ${upcoming}</div>
+                </div>
+                <div style="font-size:16px;font-weight:bold;margin-bottom:12px;color:#2c3e50;">
+                    SRS 複習清單
+                </div>
+            `;
+            
+            // Add SRS exam cards sorted by review date
+            const sortedSrsExams = srsExams.slice().sort((a, b) => {
+                if (!a.srsNextReview && !b.srsNextReview) return 0;
+                if (!a.srsNextReview) return 1;
+                if (!b.srsNextReview) return -1;
+                return new Date(a.srsNextReview) - new Date(b.srsNextReview);
+            });
+            
+            sortedSrsExams.forEach((exam) => {
+                const reviewDate = exam.srsNextReview ? new Date(exam.srsNextReview) : null;
+                let bgColor = '#fafafa';
+                let statusText = 'SRS Level ' + exam.srsLevel;
+                
+                if (reviewDate) {
+                    reviewDate.setHours(0, 0, 0, 0);
+                    if (reviewDate < today) {
+                        bgColor = '#ffe6e6';
+                        statusText += ' - 已過期';
+                    } else if (reviewDate.getTime() === today.getTime()) {
+                        bgColor = '#fff3cd';
+                        statusText += ' - 今日複習';
+                    } else {
+                        bgColor = '#e6fae6';
+                    }
+                }
+                
+                const nextReviewText = exam.srsNextReview || "未設定";
+                const lastReviewText = exam.srsLastReview || "未記錄";
+                
+                html += `
+                    <div style="border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:12px;background:${bgColor};">
+                        <div style="font-size:16px;font-weight:bold;margin-bottom:8px;color:#2c3e50;">${exam.subject} - ${exam.chapter}</div>
+                        <div style="font-size:12px;line-height:1.6;color:#555;">
+                            <div>題數: ${exam.questions}</div>
+                            <div style="font-weight:bold;">狀態: ${statusText}</div>
+                            <div>上次複習: ${lastReviewText}</div>
+                            <div>下次複習: ${nextReviewText}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            // Render to canvas with html2canvas (supports Chinese fonts)
+            try {
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+                
+                // Create PDF and add the rendered image
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                // If content is too tall, split into multiple pages
+                const pageHeight = 295; // A4 height in mm
+                let heightLeft = imgHeight;
+                let position = 0;
+                
+                doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                doc.save('srs_report.pdf');
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                alert('SRS 報告匯出失敗，請稍後再試');
+            } finally {
+                // Clean up
+                document.body.removeChild(container);
+            }
+        }
+
+
         G.sortByQuestionsBtn.addEventListener('click', () => { sortState.key = 'questions'; sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; render(); });
         G.sortByChapterBtn.addEventListener('click', () => { sortState.key = 'chapter'; sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; render(); });
         G.sortByDueBtn.addEventListener('click', () => { sortState.key = 'dueDate'; sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; render(); });
+        G.toggleCardViewBtn.addEventListener('click', () => { cardViewMode = !cardViewMode; localStorage.setItem('cardViewMode', cardViewMode); render(); });
         G.searchBox.addEventListener('input', debounce(() => render(), 180));
         G.addBtn.addEventListener('click', addExam);
         G.exportAllIcs.addEventListener('click', () => downloadAllICS());
@@ -774,7 +1112,6 @@
                 const g = ctx.createGain();
                 o.type = 'sine';
                 o.frequency.value = 880;
-                g.gain.value = 0.001;
                 o.connect(g);
                 g.connect(ctx.destination);
                 g.gain.setValueAtTime(0.001, beepStart);
@@ -934,6 +1271,7 @@
 
         // initial load
         loadExams();
+        cardViewMode = localStorage.getItem('cardViewMode') === 'true';
         applyTheme(localStorage.getItem('theme') || 'light');
         initPomodoroVisibility();
         render();
@@ -949,6 +1287,9 @@
         // hook other UI
         G.exportAllIcs.addEventListener('click', () => downloadAllICS());
         G.exportJsonBtn.addEventListener('click', exportJSON);
+        G.exportPdfBtn.addEventListener('click', exportPDF);
+        G.srsAutoPlanBtn.addEventListener('click', srsAutoPlan);
+        G.exportSrsReportBtn.addEventListener('click', exportSRSReport);
 
     });
     </script>
