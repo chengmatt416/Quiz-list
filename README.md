@@ -197,7 +197,7 @@ durations: { pom: 25*60, short: 5*60, long: 15*60 }
 
 ---
 
-**用 ❤️ 為學生和學習者製作**
+
 
 ---
 
@@ -400,4 +400,3 @@ Access the live application at: https://quizlist.techtools.qzz.io
 
 ---
 
-**Made with ❤️ for students and learners**
