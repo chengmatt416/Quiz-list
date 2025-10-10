@@ -183,6 +183,7 @@
             opacity: 0;
             transform: translateY(24px) scale(.98);
             pointer-events: none;
+            visibility: hidden;
         }
         @keyframes popIn{
             from{opacity:0; transform: translateY(24px) scale(.98)}
@@ -701,7 +702,12 @@
 
         // PDF export with Traditional Chinese support
         async function exportPDF(){
-            const { jsPDF } = window.jspdf;
+            // Check if jsPDF is available
+            if (!window.jspdf && !window.jsPDF) {
+                alert('PDF 匯出功能載入中，請稍後再試');
+                return;
+            }
+            const { jsPDF } = window.jspdf || window;
             
             // Create a temporary container for rendering
             const container = document.createElement('div');
@@ -875,35 +881,23 @@
                 // some browsers require resume by user gesture; try to resume
                 ctx.resume().catch(()=>{});
             }
-            // First beep
-            const o1 = ctx.createOscillator();
-            const g1 = ctx.createGain();
-            o1.type = 'sine';
-            o1.frequency.value = 880;
-            g1.gain.value = 0.001;
-            o1.connect(g1);
-            g1.connect(ctx.destination);
+            // Continuous beeps - play 5 beeps with pauses
             const now = ctx.currentTime;
-            g1.gain.setValueAtTime(0.001, now);
-            g1.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
-            o1.start(now);
-            g1.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
-            o1.stop(now + 0.36);
-            
-            // Second beep (starts after a short pause)
-            const o2 = ctx.createOscillator();
-            const g2 = ctx.createGain();
-            o2.type = 'sine';
-            o2.frequency.value = 880;
-            g2.gain.value = 0.001;
-            o2.connect(g2);
-            g2.connect(ctx.destination);
-            const beep2Start = now + 0.5;
-            g2.gain.setValueAtTime(0.001, beep2Start);
-            g2.gain.exponentialRampToValueAtTime(0.18, beep2Start + 0.02);
-            o2.start(beep2Start);
-            g2.gain.exponentialRampToValueAtTime(0.0001, beep2Start + 0.35);
-            o2.stop(beep2Start + 0.36);
+            for(let i = 0; i < 5; i++){
+                const beepStart = now + (i * 0.5);
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.type = 'sine';
+                o.frequency.value = 880;
+                g.gain.value = 0.001;
+                o.connect(g);
+                g.connect(ctx.destination);
+                g.gain.setValueAtTime(0.001, beepStart);
+                g.gain.exponentialRampToValueAtTime(0.18, beepStart + 0.02);
+                o.start(beepStart);
+                g.gain.exponentialRampToValueAtTime(0.0001, beepStart + 0.35);
+                o.stop(beepStart + 0.36);
+            }
         }
 
         function selectPomodoroExam(id){
