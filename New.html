@@ -297,6 +297,7 @@
                 <input type="text" id="new-chapter" placeholder="章節" required />
                 <input type="number" id="new-questions" placeholder="題數" required min="1" />
                 <input type="date" id="new-due" />
+                <button id="clear-due-btn" class="icon-btn small" style="background:#95a5a6">清除日期</button>
                 <button id="add-btn" class="submit">新增</button>
                 <div style="margin-left:auto" class="small muted">到期日(選填)，匯出日曆時會使用</div>
             </div>
@@ -372,6 +373,7 @@
             totalQuestionsEl: document.getElementById('total-questions'),
             themeToggle: document.getElementById('theme-toggle'),
             clearStorageBtn: document.getElementById('clear-storage'),
+            clearDueBtn: document.getElementById('clear-due-btn'),
             showPomodoroBtn: document.getElementById('show-pomodoro'),
             pomFullscreenToggle: document.getElementById('pom-fullscreen-toggle'),
             filterSelect: document.getElementById('filter-select'),
@@ -1068,6 +1070,9 @@
         G.exportAllIcs.addEventListener('click', () => downloadAllICS());
         G.exportJsonBtn.addEventListener('click', exportJSON);
         G.exportPdfBtn.addEventListener('click', exportPDF);
+        G.clearDueBtn.addEventListener('click', () => {
+            G.newDue.value = '';
+        });
 
     });
     </script>

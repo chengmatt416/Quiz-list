@@ -299,6 +299,7 @@
                 <input type="text" id="new-chapter" placeholder="章節" required />
                 <input type="number" id="new-questions" placeholder="題數" required min="1" />
                 <input type="date" id="new-due" />
+                <button id="clear-due-btn" class="icon-btn small" style="background:#95a5a6">清除日期</button>
                 <button id="add-btn" class="submit">新增</button>
                 <div style="margin-left:auto" class="small muted">到期日(選填)，匯出日曆時會使用</div>
             </div>
@@ -377,6 +378,7 @@
             totalQuestionsEl: document.getElementById('total-questions'),
             themeToggle: document.getElementById('theme-toggle'),
             clearStorageBtn: document.getElementById('clear-storage'),
+            clearDueBtn: document.getElementById('clear-due-btn'),
             showPomodoroBtn: document.getElementById('show-pomodoro'),
             pomFullscreenToggle: document.getElementById('pom-fullscreen-toggle'),
             filterSelect: document.getElementById('filter-select'),
@@ -488,14 +490,11 @@
                         srsHtml = `<span class="pill small" style="margin-left:8px;background:#e8f5e9;color:#2e7d32">SRS ${exam.srsLevel}</span>`;
                     }
                     
-                    // SRS buttons - show both SRS+ and SRS- when completed and corrected
-                    let srsButtons = '';
-                    if(exam.completed && exam.corrected) {
-                        srsButtons = `
-                            <button class="icon-btn srs-advance-btn small" data-id="${exam.id}" style="background:#27ae60" title="複習成功，提升等級">SRS+</button>
-                            <button class="icon-btn srs-decrease-btn small" data-id="${exam.id}" style="background:#e67e22" title="複習困難，降低等級">SRS-</button>
-                        `;
-                    }
+                    // SRS buttons - show for all tasks
+                    let srsButtons = `
+                        <button class="icon-btn srs-advance-btn small" data-id="${exam.id}" style="background:#27ae60" title="複習成功，提升等級">SRS+</button>
+                        <button class="icon-btn srs-decrease-btn small" data-id="${exam.id}" style="background:#e67e22" title="複習困難，降低等級">SRS-</button>
+                    `;
                     
                     li.innerHTML = `
                         <div class="left">
@@ -1430,6 +1429,9 @@
         G.exportPdfBtn.addEventListener('click', exportPDF);
         G.srsAutoPlanBtn.addEventListener('click', srsAutoPlan);
         G.exportSrsReportBtn.addEventListener('click', exportSRSReport);
+        G.clearDueBtn.addEventListener('click', () => {
+            G.newDue.value = '';
+        });
 
     });
     </script>
