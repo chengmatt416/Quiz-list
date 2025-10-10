@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>考卷清單與訂正進度（含到期日、匯出日曆、番茄鐘）</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root{
             --bg-color:#f4f7f6;
@@ -698,18 +699,14 @@
             downloadFile('exams.json', data, 'application/json;charset=utf-8');
         }
 
-        // PDF export
-        function exportPDF(){
+        // PDF export with Traditional Chinese support
+        async function exportPDF(){
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
             
-            // Note: jsPDF's default fonts have limited Chinese character support
-            // Chinese characters will be rendered with Unicode encoding where possible
-            doc.setFont("helvetica");
-            
-            // Title with Traditional Chinese
-            doc.setFontSize(18);
-            doc.text("考卷清單 (Exam List)", 105, 20, { align: "center" });
+            // Create a temporary container for rendering
+            const container = document.createElement('div');
+            container.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:white;padding:30px;font-family:Arial,sans-serif;';
+            document.body.appendChild(container);
             
             // Summary statistics
             let remainingTotal = 0, completedTotal = 0, totalQuestions = 0, correctedTotal = 0;
@@ -723,78 +720,75 @@
                 }
             });
             
-            doc.setFontSize(12);
-            let yPos = 35;
-            doc.text(`總題數 (Total): ${totalQuestions}`, 20, yPos);
-            yPos += 7;
-            doc.text(`尚未完成 (Remaining): ${remainingTotal} | 已完成 (Completed): ${completedTotal}`, 20, yPos);
-            yPos += 7;
-            doc.text(`已訂正 (Corrected): ${correctedTotal}`, 20, yPos);
-            yPos += 15;
+            // Build HTML content with Chinese characters
+            let html = `
+                <div style="text-align:center;font-size:24px;font-weight:bold;margin-bottom:20px;color:#2c3e50;">
+                    考卷清單
+                </div>
+                <div style="font-size:14px;margin-bottom:25px;line-height:1.8;color:#333;">
+                    <div>總題數: ${totalQuestions}</div>
+                    <div>尚未完成: ${remainingTotal} | 已完成: ${completedTotal}</div>
+                    <div>已訂正: ${correctedTotal}</div>
+                </div>
+            `;
             
-            // Card-based layout - 2 cards per row
-            const cardWidth = 85;
-            const cardHeight = 44;
-            const cardMargin = 10;
-            const startX = 20;
-            let currentX = startX;
-            let currentY = yPos;
-            let cardCount = 0;
-            
-            doc.setFontSize(10);
+            // Add exam cards
             exams.forEach((exam, idx) => {
-                // Check if we need a new page
-                if (currentY + cardHeight > 270) {
-                    doc.addPage();
-                    currentY = 20;
-                    currentX = startX;
-                    cardCount = 0;
-                }
+                const bgColor = exam.completed ? '#e6fae6' : '#fafafa';
+                const status = exam.completed ? (exam.corrected ? "已完成+已訂正" : "已完成") : "未完成";
+                const dueText = exam.dueDate ? exam.dueDate : "未設定";
                 
-                // Draw card border with shadow effect
-                doc.setDrawColor(180);
-                doc.setFillColor(exam.completed ? 230 : 250, exam.completed ? 250 : 250, exam.completed ? 230 : 250);
-                doc.roundedRect(currentX, currentY, cardWidth, cardHeight, 3, 3, 'FD');
-                
-                // Card content
-                doc.setFontSize(12);
-                doc.setFont("helvetica", "bold");
-                doc.text(exam.subject, currentX + 5, currentY + 9);
-                
-                doc.setFontSize(9);
-                doc.setFont("helvetica", "normal");
-                doc.text(`章節 (Chapter): ${exam.chapter}`, currentX + 5, currentY + 16);
-                doc.text(`題數 (Questions): ${exam.questions}`, currentX + 5, currentY + 22);
-                
-                const status = exam.completed ? (exam.corrected ? "已完成+已訂正 (Done+Corrected)" : "已完成 (Done)") : "未完成 (Pending)";
-                doc.setFont("helvetica", "bold");
-                doc.text(`狀態: ${status}`, currentX + 5, currentY + 28, { maxWidth: cardWidth - 10 });
-                
-                doc.setFont("helvetica", "normal");
-                if(exam.dueDate){
-                    doc.text(`到期日 (Due): ${exam.dueDate}`, currentX + 5, currentY + 35);
-                } else {
-                    doc.text(`到期日 (Due): 未設定 (Not set)`, currentX + 5, currentY + 35);
-                }
-                
-                // Add a subtle line at bottom of card for visual separation
-                doc.setDrawColor(220);
-                doc.line(currentX + 5, currentY + 39, currentX + cardWidth - 5, currentY + 39);
-                
-                // Move to next position
-                cardCount++;
-                if(cardCount % 2 === 0){
-                    // Move to next row
-                    currentX = startX;
-                    currentY += cardHeight + cardMargin;
-                } else {
-                    // Move to next column
-                    currentX += cardWidth + cardMargin;
-                }
+                html += `
+                    <div style="border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:12px;background:${bgColor};">
+                        <div style="font-size:16px;font-weight:bold;margin-bottom:8px;color:#2c3e50;">${exam.subject}</div>
+                        <div style="font-size:12px;line-height:1.6;color:#555;">
+                            <div>章節: ${exam.chapter}</div>
+                            <div>題數: ${exam.questions}</div>
+                            <div style="font-weight:bold;">狀態: ${status}</div>
+                            <div>到期日: ${dueText}</div>
+                        </div>
+                    </div>
+                `;
             });
             
-            // Save the PDF
-            doc.save('exams.pdf');
+            container.innerHTML = html;
+            
+            // Render to canvas with html2canvas (supports Chinese fonts)
+            try {
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+                
+                // Create PDF and add the rendered image
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                // If content is too tall, split into multiple pages
+                const pageHeight = 295; // A4 height in mm
+                let heightLeft = imgHeight;
+                let position = 0;
+                
+                doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                doc.save('exams.pdf');
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                alert('PDF 匯出失敗，請稍後再試');
+            } finally {
+                // Clean up
+                document.body.removeChild(container);
+            }
         }
 
         function importJSON(file){
