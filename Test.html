@@ -160,9 +160,10 @@
             position:fixed; right:18px; bottom:18px; width:320px; max-width:90vw; z-index:999;
             background:var(--container-bg); border-radius:14px; padding:14px; box-shadow:0 16px 48px rgba(0,0,0,0.18);
             border:1px solid var(--border-color);
-            transform: translateY(18px);
-            animation: popIn 420ms cubic-bezier(.2,.9,.2,1) forwards;
             transition: opacity .4s, transform .4s cubic-bezier(.2,.9,.2,1);
+        }
+        .pomodoro-panel:not(.hidden) {
+            animation: popIn 420ms cubic-bezier(.2,.9,.2,1) forwards;
         }
         .pomodoro-panel.hidden {
             opacity: 0;
