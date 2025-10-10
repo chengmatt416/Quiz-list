@@ -343,6 +343,8 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
+        // Initial sample data (not const, can be modified)
+        let initialData = [];
         
         let exams = [];
         let sortState = { key: 'chapter', direction: 'asc' };
@@ -396,7 +398,15 @@
         function loadExams(){
             const s = localStorage.getItem('examsList');
             if(s){
-                exams = JSON.parse(s).map(e => ({ corrected:false, dueDate:null, srsLevel:0, srsLastReview:null, srsNextReview:null, ...e }));
+                exams = JSON.parse(s).map(e => ({ 
+                    corrected:false, 
+                    dueDate:null, 
+                    srsLevel:0, 
+                    srsLastReview:null, 
+                    srsNextReview:null,
+                    srsPerformance: [],
+                    ...e 
+                }));
             } else {
                 exams = initialData.slice();
             }
@@ -478,6 +488,15 @@
                         srsHtml = `<span class="pill small" style="margin-left:8px;background:#e8f5e9;color:#2e7d32">SRS ${exam.srsLevel}</span>`;
                     }
                     
+                    // SRS buttons - show both SRS+ and SRS- when completed and corrected
+                    let srsButtons = '';
+                    if(exam.completed && exam.corrected) {
+                        srsButtons = `
+                            <button class="icon-btn srs-advance-btn small" data-id="${exam.id}" style="background:#27ae60" title="複習成功，提升等級">SRS+</button>
+                            <button class="icon-btn srs-decrease-btn small" data-id="${exam.id}" style="background:#e67e22" title="複習困難，降低等級">SRS-</button>
+                        `;
+                    }
+                    
                     li.innerHTML = `
                         <div class="left">
                             <input type="checkbox" class="completion-checkbox" data-id="${exam.id}" ${exam.completed ? 'checked' : ''} />
@@ -492,7 +511,7 @@
                         </div>
                         <div class="exam-actions">
                             <label class="correction-control"><input type="checkbox" class="correction-checkbox" data-id="${exam.id}" ${exam.corrected ? 'checked' : ''} /> 訂正</label>
-                            ${exam.completed && exam.corrected ? `<button class="icon-btn srs-advance-btn small" data-id="${exam.id}">SRS+</button>` : ''}
+                            ${srsButtons}
                             <button class="icon-btn edit-btn small" data-id="${exam.id}">編輯</button>
                             <button class="icon-btn ics-btn small" data-id="${exam.id}">匯出日曆</button>
                             <button class="delete-btn" data-id="${exam.id}" title="刪除">&times;</button>
@@ -521,6 +540,11 @@
             document.querySelectorAll('.srs-advance-btn').forEach(btn => {
                 btn.addEventListener('click', e => {
                     advanceSRSLevel(Number(btn.dataset.id));
+                });
+            });
+            document.querySelectorAll('.srs-decrease-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    decreaseSRSLevel(Number(btn.dataset.id));
                 });
             });
             document.querySelectorAll('.chapter').forEach(el => {
@@ -603,7 +627,7 @@
             exams.push({
                 id: Date.now()+Math.floor(Math.random()*999),
                 subject, chapter, questions, completed:false, corrected:false, dueDate: dueVal ? dueVal : null,
-                srsLevel: 0, srsLastReview: null, srsNextReview: null
+                srsLevel: 0, srsLastReview: null, srsNextReview: null, srsPerformance: []
             });
             saveExams();
             render();
@@ -836,7 +860,8 @@
                         dueDate: item.dueDate || null,
                         srsLevel: item.srsLevel || 0,
                         srsLastReview: item.srsLastReview || null,
-                        srsNextReview: item.srsNextReview || null
+                        srsNextReview: item.srsNextReview || null,
+                        srsPerformance: item.srsPerformance || []
                     }));
                     if(confirm('匯入將覆蓋現有清單，確定嗎？')) {
                         exams = normalized;
@@ -851,8 +876,13 @@
         }
 
         // SRS (Spaced Repetition System) functions
-        // SRS intervals in days: 1, 3, 7, 14, 30, 60, 120
-        const SRS_INTERVALS = [1, 3, 7, 14, 30, 60, 120];
+        // SRS intervals in days: 1, 3, 7, 14, 30, 60, 120, 180
+        // Enhanced with more levels for advanced mode
+        const SRS_INTERVALS = [1, 3, 7, 14, 30, 60, 120, 180];
+        
+        // Advanced SRS settings
+        const SRS_ADVANCED_MODE = true; // Enable advanced features
+        const SRS_PERFORMANCE_THRESHOLD = 0.7; // 70% correct rate threshold
 
         function srsAutoPlan() {
             if (!exams || exams.length === 0) {
@@ -864,13 +894,17 @@
             today.setHours(0, 0, 0, 0);
             
             let updatedCount = 0;
+            let rescheduledCount = 0;
+            
             exams.forEach(exam => {
                 // Initialize SRS data if not present
                 if (exam.srsLevel === undefined) exam.srsLevel = 0;
                 if (!exam.srsLastReview) exam.srsLastReview = null;
                 if (!exam.srsNextReview) exam.srsNextReview = null;
+                if (!exam.srsPerformance) exam.srsPerformance = [];
 
-                // Only plan for completed exams without a next review date
+                // Enhanced AI Planning Logic
+                // 1. Plan for completed exams without a next review date
                 if (exam.completed && !exam.srsNextReview) {
                     const nextReviewDate = new Date(today);
                     const interval = SRS_INTERVALS[Math.min(exam.srsLevel, SRS_INTERVALS.length - 1)];
@@ -880,11 +914,30 @@
                     exam.dueDate = exam.srsNextReview;
                     updatedCount++;
                 }
+                
+                // 2. Advanced: Reschedule overdue items to today
+                if (exam.srsNextReview && exam.completed) {
+                    const reviewDate = new Date(exam.srsNextReview);
+                    reviewDate.setHours(0, 0, 0, 0);
+                    
+                    // If significantly overdue (>7 days), bring it back
+                    const daysDiff = Math.floor((today - reviewDate) / (1000 * 60 * 60 * 24));
+                    if (daysDiff > 7) {
+                        exam.srsNextReview = formatDate(today);
+                        exam.dueDate = exam.srsNextReview;
+                        rescheduledCount++;
+                    }
+                }
             });
 
             saveExams();
             render();
-            alert(`SRS 自動規劃完成！\n已為 ${updatedCount} 個考卷設定複習日期`);
+            
+            let message = `SRS 自動規劃完成！\n已為 ${updatedCount} 個考卷設定複習日期`;
+            if (rescheduledCount > 0) {
+                message += `\n已重新安排 ${rescheduledCount} 個逾期考卷`;
+            }
+            alert(message);
         }
 
         function advanceSRSLevel(examId) {
@@ -892,12 +945,62 @@
             if (!exam) return;
 
             if (exam.srsLevel === undefined) exam.srsLevel = 0;
+            if (!exam.srsPerformance) exam.srsPerformance = [];
             
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             
             exam.srsLastReview = formatDate(today);
             exam.srsLevel = Math.min(exam.srsLevel + 1, SRS_INTERVALS.length - 1);
+            
+            // Track performance (assuming good performance when advancing)
+            exam.srsPerformance.push({
+                date: formatDate(today),
+                level: exam.srsLevel,
+                result: 'good'
+            });
+            
+            // Keep only last 10 performance records
+            if (exam.srsPerformance.length > 10) {
+                exam.srsPerformance = exam.srsPerformance.slice(-10);
+            }
+            
+            const nextReviewDate = new Date(today);
+            const interval = SRS_INTERVALS[exam.srsLevel];
+            nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+            
+            exam.srsNextReview = formatDate(nextReviewDate);
+            exam.dueDate = exam.srsNextReview;
+            
+            saveExams();
+            render();
+        }
+
+        function decreaseSRSLevel(examId) {
+            const exam = exams.find(e => e.id === examId);
+            if (!exam) return;
+
+            if (exam.srsLevel === undefined) exam.srsLevel = 0;
+            if (!exam.srsPerformance) exam.srsPerformance = [];
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            exam.srsLastReview = formatDate(today);
+            // Decrease level but don't go below 0
+            exam.srsLevel = Math.max(exam.srsLevel - 1, 0);
+            
+            // Track performance (poor performance when decreasing)
+            exam.srsPerformance.push({
+                date: formatDate(today),
+                level: exam.srsLevel,
+                result: 'poor'
+            });
+            
+            // Keep only last 10 performance records
+            if (exam.srsPerformance.length > 10) {
+                exam.srsPerformance = exam.srsPerformance.slice(-10);
+            }
             
             const nextReviewDate = new Date(today);
             const interval = SRS_INTERVALS[exam.srsLevel];
@@ -926,7 +1029,7 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             
-            // Calculate SRS statistics
+            // Calculate enhanced SRS statistics
             const srsExams = exams.filter(e => e.srsLevel !== undefined && e.srsLevel > 0);
             const dueToday = srsExams.filter(e => {
                 if (!e.srsNextReview) return false;
@@ -950,18 +1053,44 @@
                 return diffDays > 0 && diffDays <= 7;
             }).length;
             
-            // Build HTML content
+            // Calculate level distribution
+            const levelDist = {};
+            srsExams.forEach(e => {
+                const level = e.srsLevel || 0;
+                levelDist[level] = (levelDist[level] || 0) + 1;
+            });
+            
+            // Calculate performance stats
+            let totalReviews = 0;
+            let goodReviews = 0;
+            srsExams.forEach(e => {
+                if (e.srsPerformance && Array.isArray(e.srsPerformance)) {
+                    totalReviews += e.srsPerformance.length;
+                    goodReviews += e.srsPerformance.filter(p => p.result === 'good').length;
+                }
+            });
+            const performanceRate = totalReviews > 0 ? Math.round((goodReviews / totalReviews) * 100) : 0;
+            
+            // Build enhanced HTML content
             let html = `
                 <div style="text-align:center;font-size:24px;font-weight:bold;margin-bottom:20px;color:#2c3e50;">
-                    SRS 複習報告
+                    SRS 複習報告（進階版）
                 </div>
-                <div style="font-size:14px;margin-bottom:25px;line-height:1.8;color:#333;">
+                <div style="font-size:14px;margin-bottom:25px;line-height:1.8;color:#333;border:2px solid #3498db;border-radius:8px;padding:15px;background:#f8f9fa;">
+                    <div style="font-weight:bold;font-size:16px;margin-bottom:10px;color:#2c3e50;">📊 總體統計</div>
                     <div>報告日期: ${formatDate(today)}</div>
-                    <div>總複習項目: ${srsExams.length}</div>
-                    <div>今日到期: ${dueToday} | 已過期: ${overdue} | 七天內: ${upcoming}</div>
+                    <div>總複習項目: <strong>${srsExams.length}</strong></div>
+                    <div>今日到期: <strong style="color:#f39c12">${dueToday}</strong> | 已過期: <strong style="color:#e74c3c">${overdue}</strong> | 七天內: <strong style="color:#27ae60">${upcoming}</strong></div>
+                    ${totalReviews > 0 ? `<div>總複習次數: ${totalReviews} | 表現良好率: <strong style="color:#27ae60">${performanceRate}%</strong></div>` : ''}
                 </div>
-                <div style="font-size:16px;font-weight:bold;margin-bottom:12px;color:#2c3e50;">
-                    SRS 複習清單
+                <div style="font-size:14px;margin-bottom:20px;line-height:1.8;color:#333;">
+                    <div style="font-weight:bold;font-size:16px;margin-bottom:10px;color:#2c3e50;">📈 等級分布</div>
+                    ${Object.keys(levelDist).sort((a, b) => Number(b) - Number(a)).map(level => 
+                        `<div style="margin-bottom:5px;">Level ${level}: <strong>${levelDist[level]}</strong> 項 (間隔 ${SRS_INTERVALS[level]} 天)</div>`
+                    ).join('')}
+                </div>
+                <div style="font-size:16px;font-weight:bold;margin-bottom:12px;color:#2c3e50;border-top:2px solid #ddd;padding-top:15px;">
+                    📚 SRS 複習清單
                 </div>
             `;
             
@@ -977,31 +1106,43 @@
                 const reviewDate = exam.srsNextReview ? new Date(exam.srsNextReview) : null;
                 let bgColor = '#fafafa';
                 let statusText = 'SRS Level ' + exam.srsLevel;
+                let statusIcon = '📖';
                 
                 if (reviewDate) {
                     reviewDate.setHours(0, 0, 0, 0);
                     if (reviewDate < today) {
                         bgColor = '#ffe6e6';
                         statusText += ' - 已過期';
+                        statusIcon = '⚠️';
                     } else if (reviewDate.getTime() === today.getTime()) {
                         bgColor = '#fff3cd';
                         statusText += ' - 今日複習';
+                        statusIcon = '⏰';
                     } else {
                         bgColor = '#e6fae6';
+                        statusIcon = '✅';
                     }
                 }
                 
                 const nextReviewText = exam.srsNextReview || "未設定";
                 const lastReviewText = exam.srsLastReview || "未記錄";
                 
+                // Performance history
+                let perfHtml = '';
+                if (exam.srsPerformance && exam.srsPerformance.length > 0) {
+                    const recent = exam.srsPerformance.slice(-3);
+                    perfHtml = `<div style="font-size:11px;color:#666;margin-top:4px;">近期表現: ${recent.map(p => p.result === 'good' ? '✓' : '✗').join(' ')}</div>`;
+                }
+                
                 html += `
                     <div style="border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:12px;background:${bgColor};">
-                        <div style="font-size:16px;font-weight:bold;margin-bottom:8px;color:#2c3e50;">${exam.subject} - ${exam.chapter}</div>
+                        <div style="font-size:16px;font-weight:bold;margin-bottom:8px;color:#2c3e50;">${statusIcon} ${exam.subject} - ${exam.chapter}</div>
                         <div style="font-size:12px;line-height:1.6;color:#555;">
                             <div>題數: ${exam.questions}</div>
                             <div style="font-weight:bold;">狀態: ${statusText}</div>
                             <div>上次複習: ${lastReviewText}</div>
                             <div>下次複習: ${nextReviewText}</div>
+                            ${perfHtml}
                         </div>
                     </div>
                 `;
@@ -1037,7 +1178,7 @@
                     heightLeft -= pageHeight;
                 }
                 
-                doc.save('srs_report.pdf');
+                doc.save('srs_report_advanced.pdf');
             } catch (error) {
                 console.error('PDF generation error:', error);
                 alert('SRS 報告匯出失敗，請稍後再試');
