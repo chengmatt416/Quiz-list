@@ -245,6 +245,48 @@
         .pom-fullscreen .timer-display { font-size:96px; }
         .pom-fullscreen .pom-controls button { font-size:20px; padding:10px 18px; border-radius:12px; }
 
+        /* Modal styles */
+        .modal{
+            position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9998;
+            display:flex; align-items:center; justify-content:center; animation: fadeIn 0.3s;
+        }
+        .modal-content{
+            background:var(--container-bg); padding:28px; border-radius:12px; max-width:500px; width:90%;
+            box-shadow:0 24px 64px rgba(0,0,0,0.3); animation: slideUp 0.4s cubic-bezier(.2,.9,.2,1);
+        }
+        .modal-content h2{margin:0 0 12px 0; color:var(--header-color)}
+        .form-group{margin:16px 0}
+        .form-group label{display:block; margin-bottom:8px; font-weight:600; color:var(--text-color)}
+        .form-group input, .form-group select{
+            width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-color);
+            background:transparent; color:var(--text-color); font-size:14px;
+        }
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+        /* Schedule styles */
+        .schedule-day{
+            border:1px solid var(--border-color); border-radius:10px; padding:16px; margin-bottom:12px;
+            background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+        }
+        .schedule-day-header{
+            display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;
+            padding-bottom:8px; border-bottom:1px solid var(--border-color);
+        }
+        .schedule-day-title{font-size:16px; font-weight:700; color:var(--header-color)}
+        .schedule-day-stats{font-size:13px; color:var(--muted)}
+        .schedule-item{
+            display:flex; align-items:center; gap:12px; padding:8px; border-radius:8px;
+            background:rgba(0,0,0,0.02); margin:6px 0; transition:transform .2s;
+        }
+        .schedule-item:hover{transform:translateX(4px)}
+        .schedule-item-subject{font-weight:600; min-width:80px}
+        .schedule-item-chapter{flex:1; color:var(--muted)}
+        .schedule-item-questions{
+            padding:4px 10px; border-radius:999px; background:var(--primary-color);
+            color:white; font-size:12px; font-weight:600;
+        }
+
         @media (max-width:720px){
             body { 
                 padding: 10px; 
@@ -255,6 +297,7 @@
             .top-actions{flex-wrap:wrap}
             .toolbar { flex-direction: column; align-items: stretch; }
             .pomodoro-panel{right:8px;left:8px;bottom:12px;width:auto}
+            .modal-content{width:95%; padding:20px}
         }
         
         /* PWA Mode adjustments */
@@ -281,6 +324,7 @@
                     <div class="small muted">到期日、匯出日曆 (.ics)、番茄鐘 — 已保留你的預設清單</div>
                 </div>
                 <div class="top-actions">
+                    <button id="show-scheduler" class="icon-btn">智慧排程 🤖</button>
                     <button id="show-pomodoro" class="icon-btn">顯示番茄鐘</button>
                     <button id="pom-fullscreen-toggle" class="icon-btn">番茄鐘全螢幕</button>
                     <button id="export-all-ics" class="icon-btn">匯出全部到日曆</button>
@@ -346,6 +390,55 @@
                 <button id="clear-due-btn" class="icon-btn small" style="background:#95a5a6">清除日期</button>
                 <button id="add-btn" class="submit">新增</button>
                 <div style="margin-left:auto" class="small muted">到期日(選填)，匯出日曆時會使用</div>
+            </div>
+        </div>
+
+        <!-- Smart Scheduler Panel -->
+        <div id="scheduler-panel" class="container" style="margin-top:20px;display:none">
+            <h2>智慧排程系統 🤖</h2>
+            <div class="small muted" style="margin-bottom:16px">根據你的學習能力自動規劃每日考卷進度</div>
+            
+            <div id="schedule-view">
+                <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+                    <button id="regenerate-schedule" class="icon-btn">重新生成排程</button>
+                    <button id="schedule-settings" class="icon-btn theme-toggle">排程設定</button>
+                    <button id="hide-schedule" class="icon-btn theme-toggle">隱藏排程</button>
+                </div>
+                <div id="schedule-container"></div>
+            </div>
+        </div>
+
+        <!-- Onboarding Modal -->
+        <div id="onboarding-modal" class="modal" style="display:none">
+            <div class="modal-content">
+                <h2>歡迎使用智慧排程系統！👋</h2>
+                <p class="small muted">讓我們了解你的學習習慣，為你自動規劃考卷進度</p>
+                
+                <div class="form-group">
+                    <label for="daily-capacity">每日可完成題數：</label>
+                    <input type="number" id="daily-capacity" min="10" max="500" value="50" />
+                    <div class="small muted">建議根據你的時間和專注力設定（例如：50-100題）</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="priority-mode">優先級模式：</label>
+                    <select id="priority-mode">
+                        <option value="due-date">依到期日優先</option>
+                        <option value="balanced">平衡分配</option>
+                        <option value="subject-rotation">科目輪替</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="buffer-days">提前完成緩衝天數：</label>
+                    <input type="number" id="buffer-days" min="0" max="14" value="2" />
+                    <div class="small muted">在到期日前幾天完成（預留訂正時間）</div>
+                </div>
+                
+                <div style="display:flex;gap:12px;margin-top:20px">
+                    <button id="save-settings" class="icon-btn">開始使用</button>
+                    <button id="skip-onboarding" class="theme-toggle">稍後設定</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1116,6 +1209,318 @@
             }
         });
         window.EXAM_APP = { exams, saveExams, loadExams, render, downloadAllICS, downloadICS };
+
+        // ==================== SMART SCHEDULER SYSTEM ====================
+        const scheduler = {
+            settings: {
+                dailyCapacity: 50,
+                priorityMode: 'due-date',
+                bufferDays: 2,
+                onboardingComplete: false
+            },
+            schedule: []
+        };
+
+        function loadSchedulerSettings() {
+            const saved = localStorage.getItem('schedulerSettings');
+            if (saved) {
+                scheduler.settings = { ...scheduler.settings, ...JSON.parse(saved) };
+            }
+        }
+
+        function saveSchedulerSettings() {
+            localStorage.setItem('schedulerSettings', JSON.stringify(scheduler.settings));
+        }
+
+        function loadSchedule() {
+            const saved = localStorage.getItem('scheduleData');
+            if (saved) {
+                scheduler.schedule = JSON.parse(saved);
+            }
+        }
+
+        function saveSchedule() {
+            localStorage.setItem('scheduleData', JSON.stringify(scheduler.schedule));
+        }
+
+        // Smart scheduling algorithm
+        function generateSchedule() {
+            const { dailyCapacity, priorityMode, bufferDays } = scheduler.settings;
+            
+            // Filter incomplete exams
+            const incomplete = exams.filter(e => !e.completed);
+            if (incomplete.length === 0) {
+                scheduler.schedule = [];
+                saveSchedule();
+                return;
+            }
+
+            // Sort by priority
+            let sorted = [...incomplete];
+            if (priorityMode === 'due-date') {
+                sorted.sort((a, b) => {
+                    if (!a.dueDate && !b.dueDate) return 0;
+                    if (!a.dueDate) return 1;
+                    if (!b.dueDate) return -1;
+                    return new Date(a.dueDate) - new Date(b.dueDate);
+                });
+            } else if (priorityMode === 'balanced') {
+                // Balance between due date and question count
+                sorted.sort((a, b) => {
+                    const urgencyA = a.dueDate ? (new Date(a.dueDate) - new Date()) / (24*3600*1000) : 999;
+                    const urgencyB = b.dueDate ? (new Date(b.dueDate) - new Date()) / (24*3600*1000) : 999;
+                    const scoreA = urgencyA / Math.max(1, a.questions);
+                    const scoreB = urgencyB / Math.max(1, b.questions);
+                    return scoreA - scoreB;
+                });
+            } else if (priorityMode === 'subject-rotation') {
+                // Rotate subjects to avoid monotony
+                const subjectOrder = {};
+                let order = 0;
+                sorted.sort((a, b) => {
+                    if (!subjectOrder[a.subject]) subjectOrder[a.subject] = order++;
+                    if (!subjectOrder[b.subject]) subjectOrder[b.subject] = order++;
+                    return subjectOrder[a.subject] - subjectOrder[b.subject];
+                });
+            }
+
+            // Generate daily schedule
+            const schedule = [];
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            let dayOffset = 0;
+            let examQueue = [...sorted];
+
+            while (examQueue.length > 0) {
+                const currentDay = new Date(today);
+                currentDay.setDate(currentDay.getDate() + dayOffset);
+                
+                const daySchedule = {
+                    date: currentDay.toISOString().split('T')[0],
+                    items: [],
+                    totalQuestions: 0
+                };
+
+                let remainingCapacity = dailyCapacity;
+                
+                while (remainingCapacity > 0 && examQueue.length > 0) {
+                    const exam = examQueue[0];
+                    const examQuestions = exam.questions;
+
+                    // Check if exam can fit in remaining capacity
+                    if (examQuestions <= remainingCapacity) {
+                        // Add entire exam
+                        daySchedule.items.push({
+                            id: exam.id,
+                            subject: exam.subject,
+                            chapter: exam.chapter,
+                            questions: examQuestions,
+                            dueDate: exam.dueDate,
+                            partial: false
+                        });
+                        daySchedule.totalQuestions += examQuestions;
+                        remainingCapacity -= examQuestions;
+                        examQueue.shift();
+                    } else if (remainingCapacity >= 10) {
+                        // Split exam if remaining capacity is enough for meaningful work
+                        daySchedule.items.push({
+                            id: exam.id,
+                            subject: exam.subject,
+                            chapter: exam.chapter,
+                            questions: remainingCapacity,
+                            dueDate: exam.dueDate,
+                            partial: true,
+                            remaining: examQuestions - remainingCapacity
+                        });
+                        daySchedule.totalQuestions += remainingCapacity;
+                        exam.questions -= remainingCapacity;
+                        remainingCapacity = 0;
+                    } else {
+                        // Not enough capacity for meaningful work, move to next day
+                        break;
+                    }
+                }
+
+                if (daySchedule.items.length > 0) {
+                    schedule.push(daySchedule);
+                }
+
+                dayOffset++;
+                
+                // Safety limit: don't schedule more than 90 days out
+                if (dayOffset > 90) break;
+            }
+
+            scheduler.schedule = schedule;
+            saveSchedule();
+            renderSchedule();
+        }
+
+        function renderSchedule() {
+            const container = document.getElementById('schedule-container');
+            if (!container) return;
+
+            if (scheduler.schedule.length === 0) {
+                container.innerHTML = '<div class="small muted">目前沒有需要排程的考卷，請先新增考卷或標記現有考卷為未完成</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            scheduler.schedule.forEach((day, idx) => {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'schedule-day';
+                
+                const date = new Date(day.date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const diffDays = Math.round((date - today) / (24*3600*1000));
+                
+                let dayLabel = '';
+                if (diffDays === 0) dayLabel = '今天';
+                else if (diffDays === 1) dayLabel = '明天';
+                else if (diffDays < 7) dayLabel = `${diffDays} 天後`;
+                else dayLabel = `${Math.floor(diffDays/7)} 週後`;
+                
+                const weekday = ['日', '一', '二', '三', '四', '五', '六'][date.getDay()];
+                
+                dayDiv.innerHTML = `
+                    <div class="schedule-day-header">
+                        <div class="schedule-day-title">第 ${idx + 1} 天 - ${dayLabel} (週${weekday}) ${day.date}</div>
+                        <div class="schedule-day-stats">${day.totalQuestions} 題</div>
+                    </div>
+                    <div class="schedule-items">
+                        ${day.items.map(item => `
+                            <div class="schedule-item">
+                                <div class="schedule-item-subject">${escapeHtml(item.subject)}</div>
+                                <div class="schedule-item-chapter">
+                                    ${escapeHtml(item.chapter)}
+                                    ${item.partial ? '<span style="color:var(--accent-color)">（部分）</span>' : ''}
+                                    ${item.dueDate ? `<span class="small" style="margin-left:8px">⏰ ${item.dueDate}</span>` : ''}
+                                </div>
+                                <div class="schedule-item-questions">${item.questions} 題</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(dayDiv);
+            });
+        }
+
+        function showScheduler() {
+            const panel = document.getElementById('scheduler-panel');
+            if (panel) {
+                panel.style.display = 'block';
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function hideScheduler() {
+            const panel = document.getElementById('scheduler-panel');
+            if (panel) panel.style.display = 'none';
+        }
+
+        function showOnboarding() {
+            const modal = document.getElementById('onboarding-modal');
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function hideOnboarding() {
+            const modal = document.getElementById('onboarding-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function saveOnboardingSettings() {
+            const dailyCapacity = parseInt(document.getElementById('daily-capacity').value) || 50;
+            const priorityMode = document.getElementById('priority-mode').value;
+            const bufferDays = parseInt(document.getElementById('buffer-days').value) || 2;
+            
+            scheduler.settings = {
+                dailyCapacity,
+                priorityMode,
+                bufferDays,
+                onboardingComplete: true
+            };
+            
+            saveSchedulerSettings();
+            hideOnboarding();
+            generateSchedule();
+            showScheduler();
+        }
+
+        function showScheduleSettings() {
+            // Pre-fill current settings
+            document.getElementById('daily-capacity').value = scheduler.settings.dailyCapacity;
+            document.getElementById('priority-mode').value = scheduler.settings.priorityMode;
+            document.getElementById('buffer-days').value = scheduler.settings.bufferDays;
+            showOnboarding();
+        }
+
+        // Event listeners for scheduler
+        const showSchedulerBtn = document.getElementById('show-scheduler');
+        const regenerateScheduleBtn = document.getElementById('regenerate-schedule');
+        const scheduleSettingsBtn = document.getElementById('schedule-settings');
+        const hideScheduleBtn = document.getElementById('hide-schedule');
+        const saveSettingsBtn = document.getElementById('save-settings');
+        const skipOnboardingBtn = document.getElementById('skip-onboarding');
+
+        if (showSchedulerBtn) {
+            showSchedulerBtn.addEventListener('click', () => {
+                if (!scheduler.settings.onboardingComplete) {
+                    showOnboarding();
+                } else {
+                    if (scheduler.schedule.length === 0) {
+                        generateSchedule();
+                    }
+                    showScheduler();
+                }
+            });
+        }
+
+        if (regenerateScheduleBtn) {
+            regenerateScheduleBtn.addEventListener('click', () => {
+                if (confirm('確定要重新生成排程嗎？')) {
+                    generateSchedule();
+                }
+            });
+        }
+
+        if (scheduleSettingsBtn) {
+            scheduleSettingsBtn.addEventListener('click', showScheduleSettings);
+        }
+
+        if (hideScheduleBtn) {
+            hideScheduleBtn.addEventListener('click', hideScheduler);
+        }
+
+        if (saveSettingsBtn) {
+            saveSettingsBtn.addEventListener('click', saveOnboardingSettings);
+        }
+
+        if (skipOnboardingBtn) {
+            skipOnboardingBtn.addEventListener('click', () => {
+                hideOnboarding();
+            });
+        }
+
+        // Initialize scheduler
+        loadSchedulerSettings();
+        loadSchedule();
+
+        // Auto-regenerate schedule when exams change
+        const originalSaveExams = saveExams;
+        saveExams = function() {
+            originalSaveExams();
+            // Only regenerate if scheduler has been set up
+            if (scheduler.settings.onboardingComplete) {
+                setTimeout(() => {
+                    generateSchedule();
+                }, 100);
+            }
+        };
+
+        // ==================== END SMART SCHEDULER SYSTEM ====================
 
         // hook other UI
         G.exportAllIcs.addEventListener('click', () => downloadAllICS());
