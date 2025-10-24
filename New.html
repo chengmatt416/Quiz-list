@@ -38,6 +38,7 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         :root{
             --bg-color:#f4f7f6;
@@ -275,9 +276,13 @@
         }
         .schedule-day-title{font-size:16px; font-weight:700; color:var(--header-color)}
         .schedule-day-stats{font-size:13px; color:var(--muted)}
+        .schedule-items{
+            min-height:50px;
+        }
         .schedule-item{
             display:flex; align-items:center; gap:12px; padding:8px; border-radius:8px;
             background:rgba(0,0,0,0.02); margin:6px 0; transition:transform .2s;
+            cursor:move;
         }
         .schedule-item:hover{transform:translateX(4px)}
         .schedule-item-subject{font-weight:600; min-width:80px}
@@ -285,6 +290,17 @@
         .schedule-item-questions{
             padding:4px 10px; border-radius:999px; background:var(--primary-color);
             color:white; font-size:12px; font-weight:600;
+        }
+        .sortable-ghost {
+            opacity: 0.4;
+            background: var(--secondary-color);
+        }
+        .sortable-chosen {
+            background: var(--primary-color);
+            color: white;
+        }
+        .sortable-drag {
+            opacity: 0.8;
         }
 
         @media (max-width:720px){
@@ -298,6 +314,114 @@
             .toolbar { flex-direction: column; align-items: stretch; }
             .pomodoro-panel{right:8px;left:8px;bottom:12px;width:auto}
             .modal-content{width:95%; padding:20px}
+        }
+        
+        /* Excluded dates tags */
+        .excluded-date-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 999px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .excluded-date-tag:hover {
+            opacity: 0.8;
+        }
+        .excluded-date-tag .remove-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0;
+            margin: 0;
+            line-height: 1;
+        }
+        
+        /* Calendar capacity grid */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .calendar-day-header {
+            text-align: center;
+            font-weight: bold;
+            padding: 8px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .calendar-day {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--container-bg);
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .calendar-day:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        .calendar-day.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .calendar-day.disabled:hover {
+            background: var(--container-bg);
+            transform: none;
+        }
+        .calendar-day.has-capacity {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border-color: #4caf50;
+        }
+        .calendar-day-number {
+            font-weight: bold;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+        .calendar-day-capacity {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+        .calendar-month-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 8px;
+            background: var(--secondary-color);
+            border-radius: 8px;
+        }
+        .calendar-month-title {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .calendar-nav-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .calendar-nav-btn:hover {
+            opacity: 0.8;
         }
         
         /* PWA Mode adjustments */
@@ -327,6 +451,9 @@
                     <button id="show-scheduler" class="icon-btn">智慧排程 🤖</button>
                     <button id="show-pomodoro" class="icon-btn">顯示番茄鐘</button>
                     <button id="pom-fullscreen-toggle" class="icon-btn">番茄鐘全螢幕</button>
+                    <button id="srs-auto-plan" class="icon-btn">SRS 自動規劃</button>
+                    <button id="experimental-plan" class="icon-btn" style="background:#9b59b6;color:white">🧪 實驗性規劃</button>
+                    <button id="export-srs-report" class="icon-btn">匯出 SRS 報告</button>
                     <button id="export-all-ics" class="icon-btn">匯出全部到日曆</button>
                     <button id="export-json" class="icon-btn">匯出 JSON</button>
                     <button id="export-pdf" class="icon-btn">匯出 PDF</button>
@@ -415,9 +542,38 @@
                 <p class="small muted">讓我們了解你的學習習慣，為你自動規劃考卷進度</p>
                 
                 <div class="form-group">
-                    <label for="daily-capacity">每日可完成題數：</label>
-                    <input type="number" id="daily-capacity" min="10" max="500" value="50" />
-                    <div class="small muted">建議根據你的時間和專注力設定（例如：50-100題）</div>
+                    <label for="capacity-mode">容量設定模式：</label>
+                    <select id="capacity-mode">
+                        <option value="simple">簡易模式（每日固定時間）</option>
+                        <option value="calendar">日曆模式（個別設定每日時間）</option>
+                    </select>
+                    <div class="small muted">選擇如何設定每日可用的學習時間</div>
+                </div>
+                
+                <div id="simple-mode-settings">
+                    <div class="form-group">
+                        <label for="daily-capacity">每日可完成題數：</label>
+                        <input type="number" id="daily-capacity" min="10" max="500" value="50" />
+                        <div class="small muted">建議根據你的時間和專注力設定（例如：50-100題）</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="excluded-dates-input">排除日期（不做考卷的日期）：</label>
+                        <div style="display:flex;gap:8px;margin-bottom:8px">
+                            <input type="date" id="excluded-date-picker" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)" />
+                            <button id="add-excluded-date" class="icon-btn" style="padding:8px 16px">新增</button>
+                        </div>
+                        <div id="excluded-dates-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+                        <div class="small muted">點擊新增按鈕來排除特定日期（例如：假日、考試日）</div>
+                    </div>
+                </div>
+                
+                <div id="calendar-mode-settings" style="display:none">
+                    <div class="form-group">
+                        <label>日曆容量設定：</label>
+                        <div class="small muted" style="margin-bottom:12px">在日曆上點擊日期來設定該日的可完成題數（未設定的日期將不排程）</div>
+                        <div id="calendar-container" style="background:var(--secondary-color);padding:16px;border-radius:8px;max-height:400px;overflow-y:auto"></div>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -479,6 +635,60 @@
     </div>
 
     <script>
+    // Global helper functions for SRS planning modals (need to be global for onclick handlers)
+    window.updatePlanChange = function(index, newDate) {
+        if (window.currentSRSPlan && window.currentSRSPlan[index]) {
+            window.currentSRSPlan[index].newDate = newDate;
+        }
+    };
+    
+    window.closeSRSPlanModal = function() {
+        const modal = document.getElementById('srs-plan-modal');
+        if (modal) {
+            modal.remove();
+        }
+        window.currentSRSPlan = null;
+    };
+    
+    window.applyAndCloseSRSPlan = function() {
+        if (window.currentSRSPlan && window.currentSRSPlan.length > 0) {
+            // Call the local applySRSPlan function through a stored reference
+            if (window._applySRSPlan) {
+                window._applySRSPlan(window.currentSRSPlan);
+                alert(`✅ 已成功套用 ${window.currentSRSPlan.length} 項規劃！`);
+            }
+        }
+        window.closeSRSPlanModal();
+    };
+    
+    window.updateExpPlanChange = function(index, newDate) {
+        if (window.currentExpPlan && window.currentExpPlan[index]) {
+            window.currentExpPlan[index].newDate = newDate;
+        }
+    };
+    
+    window.closeExpPlanModal = function() {
+        const modal = document.getElementById('exp-plan-modal');
+        if (modal) modal.remove();
+        window.currentExpPlan = null;
+    };
+    
+    window.applyAndCloseExpPlan = function() {
+        if (window.currentExpPlan && window.currentExpPlan.length > 0) {
+            // Call through the apply function that will be set up later
+            if (window._applyExpPlan) {
+                window._applyExpPlan(window.currentExpPlan);
+                alert(`✅ 已成功套用 ${window.currentExpPlan.length} 項規劃！`);
+            }
+        }
+        window.closeExpPlanModal();
+    };
+    
+    window.closeExpMenu = function() {
+        const modal = document.getElementById('exp-menu-modal');
+        if (modal) modal.remove();
+    };
+    
     document.addEventListener('DOMContentLoaded', () => {
 
         // Initial data (can be customized)
@@ -539,7 +749,15 @@
         function loadExams(){
             const s = localStorage.getItem('examsList');
             if(s){
-                exams = JSON.parse(s).map(e => ({ corrected:false, dueDate:null, ...e }));
+                exams = JSON.parse(s).map(e => ({ 
+                    corrected:false, 
+                    dueDate:null, 
+                    srsLevel:0, 
+                    srsLastReview:null, 
+                    srsNextReview:null,
+                    srsPerformance: [],
+                    ...e 
+                }));
             } else {
                 exams = initialData.slice();
             }
@@ -614,6 +832,19 @@
                         const label = overdue ? `已過期 ${Math.abs(diffDays)} 天` : (diffDays === 0 ? '到期：今天' : `到期：${diffDays} 天後`);
                         dueHtml = `<span class="due-date ${overdue ? 'overdue': ''}" title="${formatDate(due)}">${label}</span>`;
                     }
+                    
+                    // SRS level display
+                    let srsHtml = '';
+                    if(exam.srsLevel && exam.srsLevel > 0){
+                        srsHtml = `<span class="pill small" style="margin-left:8px;background:#e8f5e9;color:#2e7d32">SRS ${exam.srsLevel}</span>`;
+                    }
+                    
+                    // SRS buttons - show for all tasks
+                    let srsButtons = `
+                        <button class="icon-btn srs-advance-btn small" data-id="${exam.id}" style="background:#27ae60" title="複習成功，提升等級">SRS+</button>
+                        <button class="icon-btn srs-decrease-btn small" data-id="${exam.id}" style="background:#e67e22" title="複習困難，降低等級">SRS-</button>
+                    `;
+                    
                     li.innerHTML = `
                         <div class="left">
                             <input type="checkbox" class="completion-checkbox" data-id="${exam.id}" ${exam.completed ? 'checked' : ''} />
@@ -621,12 +852,14 @@
                                 <div>
                                     <span class="chapter">${escapeHtml(exam.chapter)}</span>
                                     ${dueHtml}
+                                    ${srsHtml}
                                 </div>
                                 <div class="meta small muted">${escapeHtml(exam.subject)} ・ <span class="meta-questions">${exam.questions} 題</span></div>
                             </div>
                         </div>
                         <div class="exam-actions">
                             <label class="correction-control"><input type="checkbox" class="correction-checkbox" data-id="${exam.id}" ${exam.corrected ? 'checked' : ''} /> 訂正</label>
+                            ${srsButtons}
                             <button class="icon-btn edit-btn small" data-id="${exam.id}">編輯</button>
                             <button class="icon-btn ics-btn small" data-id="${exam.id}">匯出日曆</button>
                             <button class="delete-btn" data-id="${exam.id}" title="刪除">&times;</button>
@@ -650,6 +883,16 @@
                 btn.addEventListener('click', e => {
                     const exam = exams.find(x => x.id === Number(btn.dataset.id));
                     if(exam) downloadICS(exam);
+                });
+            });
+            document.querySelectorAll('.srs-advance-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    advanceSRSLevel(Number(btn.dataset.id));
+                });
+            });
+            document.querySelectorAll('.srs-decrease-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    decreaseSRSLevel(Number(btn.dataset.id));
                 });
             });
             document.querySelectorAll('.chapter').forEach(el => {
@@ -731,7 +974,8 @@
             if(!subject || !chapter || questions <= 0) return alert('請填科目、章節與題數（題數需大於 0）');
             exams.push({
                 id: Date.now()+Math.floor(Math.random()*999),
-                subject, chapter, questions, completed:false, corrected:false, dueDate: dueVal ? dueVal : null
+                subject, chapter, questions, completed:false, corrected:false, dueDate: dueVal ? dueVal : null,
+                srsLevel: 0, srsLastReview: null, srsNextReview: null, srsPerformance: []
             });
             saveExams();
             render();
@@ -961,7 +1205,11 @@
                         questions: Number(item.questions) || 0,
                         completed: !!item.completed,
                         corrected: !!item.corrected,
-                        dueDate: item.dueDate || null
+                        dueDate: item.dueDate || null,
+                        srsLevel: item.srsLevel || 0,
+                        srsLastReview: item.srsLastReview || null,
+                        srsNextReview: item.srsNextReview || null,
+                        srsPerformance: item.srsPerformance || []
                     }));
                     if(confirm('匯入將覆蓋現有清單，確定嗎？')) {
                         exams = normalized;
@@ -974,6 +1222,799 @@
             };
             reader.readAsText(file);
         }
+
+        // ==================== SRS (Spaced Repetition System) FUNCTIONS ====================
+        
+        // SRS intervals in days: 1, 3, 7, 14, 30, 60, 120, 180
+        const SRS_INTERVALS = [1, 3, 7, 14, 30, 60, 120, 180];
+        
+        // Advanced SRS settings
+        const SRS_ADVANCED_MODE = true; // Enable advanced features
+        const SRS_PERFORMANCE_THRESHOLD = 0.7; // 70% correct rate threshold
+
+        // Generate SRS plan without applying it
+        function generateSRSPlan() {
+            if (!exams || exams.length === 0) {
+                return { changes: [], updatedCount: 0, rescheduledCount: 0, newPlansCount: 0 };
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let updatedCount = 0;
+            let rescheduledCount = 0;
+            let newPlansCount = 0;
+            const changes = [];
+            
+            exams.forEach(exam => {
+                // Initialize SRS data if not present
+                if (exam.srsLevel === undefined) exam.srsLevel = 0;
+                if (!exam.srsLastReview) exam.srsLastReview = null;
+                if (!exam.srsNextReview) exam.srsNextReview = null;
+                if (!exam.srsPerformance) exam.srsPerformance = [];
+
+                // Enhanced AI Planning Logic
+                // 1. Plan for completed exams without a next review date
+                if (exam.completed && !exam.srsNextReview) {
+                    const nextReviewDate = new Date(today);
+                    const interval = SRS_INTERVALS[Math.min(exam.srsLevel, SRS_INTERVALS.length - 1)];
+                    nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+                    
+                    const newDate = formatDate(nextReviewDate);
+                    changes.push({
+                        id: exam.id,
+                        subject: exam.subject,
+                        chapter: exam.chapter,
+                        oldDate: exam.dueDate,
+                        newDate: newDate,
+                        srsLevel: exam.srsLevel,
+                        reason: '新增複習計畫',
+                        type: 'new'
+                    });
+                    newPlansCount++;
+                }
+                
+                // 2. Advanced: Reschedule overdue items to today
+                if (exam.srsNextReview && exam.completed) {
+                    const reviewDate = new Date(exam.srsNextReview);
+                    reviewDate.setHours(0, 0, 0, 0);
+                    
+                    // If significantly overdue (>7 days), bring it back
+                    const daysDiff = Math.floor((today - reviewDate) / (1000 * 60 * 60 * 24));
+                    if (daysDiff > 7) {
+                        changes.push({
+                            id: exam.id,
+                            subject: exam.subject,
+                            chapter: exam.chapter,
+                            oldDate: exam.srsNextReview,
+                            newDate: formatDate(today),
+                            srsLevel: exam.srsLevel,
+                            reason: `已逾期 ${daysDiff} 天，重新安排`,
+                            type: 'reschedule'
+                        });
+                        rescheduledCount++;
+                    }
+                }
+                
+                // 3. Experimental: Plan for uncompleted exams without due date
+                if (!exam.completed && !exam.dueDate) {
+                    const planDate = new Date(today);
+                    planDate.setDate(planDate.getDate() + 3); // Default 3 days from now
+                    
+                    changes.push({
+                        id: exam.id,
+                        subject: exam.subject,
+                        chapter: exam.chapter,
+                        oldDate: null,
+                        newDate: formatDate(planDate),
+                        srsLevel: 0,
+                        reason: '未完成項目自動規劃',
+                        type: 'auto'
+                    });
+                    updatedCount++;
+                }
+            });
+            
+            return { changes, updatedCount, rescheduledCount, newPlansCount };
+        }
+        
+        // Apply SRS plan changes
+        function applySRSPlan(changes) {
+            changes.forEach(change => {
+                const exam = exams.find(e => e.id === change.id);
+                if (exam) {
+                    exam.dueDate = change.newDate;
+                    if (exam.completed) {
+                        exam.srsNextReview = change.newDate;
+                    }
+                }
+            });
+            saveExams();
+            render();
+        }
+        
+        // Apply experimental plan changes
+        function applyExpPlan(changes) {
+            changes.forEach(change => {
+                const exam = exams.find(e => e.id === change.id);
+                if (exam) {
+                    exam.dueDate = change.newDate;
+                }
+            });
+            saveExams();
+            render();
+        }
+        
+        // Store references for global functions
+        window._applySRSPlan = applySRSPlan;
+        window._applyExpPlan = applyExpPlan;
+        window._exams = exams;
+        window._saveExams = saveExams;
+        window._render = render;
+        
+        // Show SRS planning preview dialog
+        function srsAutoPlan() {
+            const plan = generateSRSPlan();
+            
+            if (plan.changes.length === 0) {
+                alert('沒有需要規劃的考卷');
+                return;
+            }
+            
+            // Create modal
+            const modal = document.createElement('div');
+            modal.id = 'srs-plan-modal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.3s';
+            
+            const content = document.createElement('div');
+            content.style.cssText = 'background:var(--container-bg);padding:24px;border-radius:12px;max-width:800px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.3)';
+            
+            let html = `
+                <h2 style="margin:0 0 16px 0;color:var(--header-color)">📋 SRS 自動規劃預覽</h2>
+                <div style="margin-bottom:20px;padding:12px;background:var(--secondary-color);border-radius:8px;">
+                    <div style="font-weight:bold;margin-bottom:8px">📊 規劃摘要</div>
+                    <div>新增複習計畫: <strong>${plan.newPlansCount}</strong></div>
+                    <div>重新安排逾期: <strong>${plan.rescheduledCount}</strong></div>
+                    <div>自動規劃未完成: <strong>${plan.updatedCount}</strong></div>
+                    <div>總計變更: <strong>${plan.changes.length}</strong></div>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <div style="font-weight:bold;margin-bottom:12px">📝 規劃詳情 (可編輯到期日)</div>
+                    <div id="plan-items-container">
+            `;
+            
+            plan.changes.forEach((change, index) => {
+                const typeColor = change.type === 'new' ? '#27ae60' : change.type === 'reschedule' ? '#e67e22' : '#3498db';
+                html += `
+                    <div style="border:1px solid var(--border-color);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--container-bg)">
+                        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+                            <div style="flex:1">
+                                <div style="font-weight:bold;color:var(--header-color)">${change.subject} - ${change.chapter}</div>
+                                <div style="font-size:12px;color:${typeColor};margin-top:4px">${change.reason}</div>
+                            </div>
+                            <span style="background:${typeColor};color:white;padding:4px 8px;border-radius:4px;font-size:11px;white-space:nowrap">SRS ${change.srsLevel}</span>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;font-size:13px">
+                            <div>
+                                <div style="color:var(--muted);font-size:11px">原到期日</div>
+                                <div>${change.oldDate || '未設定'}</div>
+                            </div>
+                            <div style="color:var(--primary-color);font-weight:bold">→</div>
+                            <div>
+                                <div style="color:var(--muted);font-size:11px">新到期日</div>
+                                <input type="date" 
+                                    class="srs-plan-date" 
+                                    data-change-index="${index}" 
+                                    value="${change.newDate}" 
+                                    style="padding:6px;border:1px solid var(--border-color);border-radius:4px;background:var(--container-bg);color:var(--text-color);width:100%" />
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+                <div style="display:flex;gap:12px;justify-content:flex-end">
+                    <button id="srs-cancel-btn" style="padding:10px 20px;border:1px solid var(--border-color);border-radius:8px;background:var(--secondary-color);color:var(--text-color);cursor:pointer;font-size:14px">取消</button>
+                    <button id="srs-apply-btn" style="padding:10px 20px;border:none;border-radius:8px;background:var(--primary-color);color:white;cursor:pointer;font-size:14px;font-weight:bold">套用規劃</button>
+                </div>
+            `;
+            
+            content.innerHTML = html;
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // Store plan data globally for access in button handlers
+            window.currentSRSPlan = plan.changes;
+            
+            // Add event listeners
+            document.getElementById('srs-cancel-btn').addEventListener('click', window.closeSRSPlanModal);
+            document.getElementById('srs-apply-btn').addEventListener('click', window.applyAndCloseSRSPlan);
+            
+            // Add listeners for date inputs
+            document.querySelectorAll('.srs-plan-date').forEach(input => {
+                input.addEventListener('change', function() {
+                    const index = parseInt(this.getAttribute('data-change-index'));
+                    window.updatePlanChange(index, this.value);
+                });
+            });
+        }
+        
+
+        function advanceSRSLevel(examId) {
+            const exam = exams.find(e => e.id === examId);
+            if (!exam) return;
+
+            if (exam.srsLevel === undefined) exam.srsLevel = 0;
+            if (!exam.srsPerformance) exam.srsPerformance = [];
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            exam.srsLastReview = formatDate(today);
+            exam.srsLevel = Math.min(exam.srsLevel + 1, SRS_INTERVALS.length - 1);
+            
+            // Track performance (assuming good performance when advancing)
+            exam.srsPerformance.push({
+                date: formatDate(today),
+                level: exam.srsLevel,
+                result: 'good'
+            });
+            
+            // Keep only last 10 performance records
+            if (exam.srsPerformance.length > 10) {
+                exam.srsPerformance = exam.srsPerformance.slice(-10);
+            }
+            
+            const nextReviewDate = new Date(today);
+            const interval = SRS_INTERVALS[exam.srsLevel];
+            nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+            
+            exam.srsNextReview = formatDate(nextReviewDate);
+            exam.dueDate = exam.srsNextReview;
+            
+            saveExams();
+            render();
+        }
+
+        function decreaseSRSLevel(examId) {
+            const exam = exams.find(e => e.id === examId);
+            if (!exam) return;
+
+            if (exam.srsLevel === undefined) exam.srsLevel = 0;
+            if (!exam.srsPerformance) exam.srsPerformance = [];
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            exam.srsLastReview = formatDate(today);
+            // Decrease level but don't go below 0
+            exam.srsLevel = Math.max(exam.srsLevel - 1, 0);
+            
+            // Track performance (poor performance when decreasing)
+            exam.srsPerformance.push({
+                date: formatDate(today),
+                level: exam.srsLevel,
+                result: 'poor'
+            });
+            
+            // Keep only last 10 performance records
+            if (exam.srsPerformance.length > 10) {
+                exam.srsPerformance = exam.srsPerformance.slice(-10);
+            }
+            
+            const nextReviewDate = new Date(today);
+            const interval = SRS_INTERVALS[exam.srsLevel];
+            nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+            
+            exam.srsNextReview = formatDate(nextReviewDate);
+            exam.dueDate = exam.srsNextReview;
+            
+            saveExams();
+            render();
+        }
+
+        async function exportSRSReport() {
+            // Check if jsPDF is available
+            if (!window.jspdf && !window.jsPDF) {
+                alert('PDF 匯出功能載入中，請稍後再試');
+                return;
+            }
+            const { jsPDF } = window.jspdf || window;
+            
+            // Create a temporary container for rendering
+            const container = document.createElement('div');
+            container.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:white;padding:30px;font-family:Arial,sans-serif;';
+            document.body.appendChild(container);
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Calculate enhanced SRS statistics
+            const srsExams = exams.filter(e => e.srsLevel !== undefined && e.srsLevel > 0);
+            const dueToday = srsExams.filter(e => {
+                if (!e.srsNextReview) return false;
+                const reviewDate = new Date(e.srsNextReview);
+                reviewDate.setHours(0, 0, 0, 0);
+                return reviewDate.getTime() === today.getTime();
+            }).length;
+            
+            const overdue = srsExams.filter(e => {
+                if (!e.srsNextReview) return false;
+                const reviewDate = new Date(e.srsNextReview);
+                reviewDate.setHours(0, 0, 0, 0);
+                return reviewDate < today;
+            }).length;
+            
+            const upcoming = srsExams.filter(e => {
+                if (!e.srsNextReview) return false;
+                const reviewDate = new Date(e.srsNextReview);
+                reviewDate.setHours(0, 0, 0, 0);
+                const diffDays = Math.ceil((reviewDate - today) / (1000 * 60 * 60 * 24));
+                return diffDays > 0 && diffDays <= 7;
+            }).length;
+            
+            // Calculate level distribution
+            const levelDist = {};
+            srsExams.forEach(e => {
+                const level = e.srsLevel || 0;
+                levelDist[level] = (levelDist[level] || 0) + 1;
+            });
+            
+            // Calculate performance stats
+            let totalReviews = 0;
+            let goodReviews = 0;
+            srsExams.forEach(e => {
+                if (e.srsPerformance && Array.isArray(e.srsPerformance)) {
+                    totalReviews += e.srsPerformance.length;
+                    goodReviews += e.srsPerformance.filter(p => p.result === 'good').length;
+                }
+            });
+            const performanceRate = totalReviews > 0 ? Math.round((goodReviews / totalReviews) * 100) : 0;
+            
+            // Build enhanced HTML content
+            let html = `
+                <div style="text-align:center;font-size:24px;font-weight:bold;margin-bottom:20px;color:#2c3e50;">
+                    SRS 複習報告（進階版）
+                </div>
+                <div style="font-size:14px;margin-bottom:25px;line-height:1.8;color:#333;border:2px solid #3498db;border-radius:8px;padding:15px;background:#f8f9fa;">
+                    <div style="font-weight:bold;font-size:16px;margin-bottom:10px;color:#2c3e50;">📊 總體統計</div>
+                    <div>報告日期: ${formatDate(today)}</div>
+                    <div>總複習項目: <strong>${srsExams.length}</strong></div>
+                    <div>今日到期: <strong style="color:#f39c12">${dueToday}</strong> | 已過期: <strong style="color:#e74c3c">${overdue}</strong> | 七天內: <strong style="color:#27ae60">${upcoming}</strong></div>
+                    ${totalReviews > 0 ? `<div>總複習次數: ${totalReviews} | 表現良好率: <strong style="color:#27ae60">${performanceRate}%</strong></div>` : ''}
+                </div>
+                <div style="font-size:14px;margin-bottom:20px;line-height:1.8;color:#333;">
+                    <div style="font-weight:bold;font-size:16px;margin-bottom:10px;color:#2c3e50;">📈 等級分布</div>
+                    ${Object.keys(levelDist).sort((a, b) => Number(b) - Number(a)).map(level => 
+                        `<div style="margin-bottom:5px;">Level ${level}: <strong>${levelDist[level]}</strong> 項 (間隔 ${SRS_INTERVALS[level]} 天)</div>`
+                    ).join('')}
+                </div>
+                <div style="font-size:16px;font-weight:bold;margin-bottom:12px;color:#2c3e50;border-top:2px solid #ddd;padding-top:15px;">
+                    📚 SRS 複習清單
+                </div>
+            `;
+            
+            // Add SRS exam cards sorted by review date
+            const sortedSrsExams = srsExams.slice().sort((a, b) => {
+                if (!a.srsNextReview && !b.srsNextReview) return 0;
+                if (!a.srsNextReview) return 1;
+                if (!b.srsNextReview) return -1;
+                return new Date(a.srsNextReview) - new Date(b.srsNextReview);
+            });
+            
+            sortedSrsExams.forEach((exam) => {
+                const reviewDate = exam.srsNextReview ? new Date(exam.srsNextReview) : null;
+                let bgColor = '#fafafa';
+                let statusText = 'SRS Level ' + exam.srsLevel;
+                let statusIcon = '📖';
+                
+                if (reviewDate) {
+                    reviewDate.setHours(0, 0, 0, 0);
+                    if (reviewDate < today) {
+                        bgColor = '#ffe6e6';
+                        statusText += ' - 已過期';
+                        statusIcon = '⚠️';
+                    } else if (reviewDate.getTime() === today.getTime()) {
+                        bgColor = '#fff3cd';
+                        statusText += ' - 今日複習';
+                        statusIcon = '⏰';
+                    } else {
+                        bgColor = '#e6fae6';
+                        statusIcon = '✅';
+                    }
+                }
+                
+                const nextReviewText = exam.srsNextReview || "未設定";
+                const lastReviewText = exam.srsLastReview || "未記錄";
+                
+                // Performance history
+                let perfHtml = '';
+                if (exam.srsPerformance && exam.srsPerformance.length > 0) {
+                    const recent = exam.srsPerformance.slice(-3);
+                    perfHtml = `<div style="font-size:11px;color:#666;margin-top:4px;">近期表現: ${recent.map(p => p.result === 'good' ? '✓' : '✗').join(' ')}</div>`;
+                }
+                
+                html += `
+                    <div style="border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:12px;background:${bgColor};">
+                        <div style="font-size:16px;font-weight:bold;margin-bottom:8px;color:#2c3e50;">${statusIcon} ${exam.subject} - ${exam.chapter}</div>
+                        <div style="font-size:12px;line-height:1.6;color:#555;">
+                            <div>題數: ${exam.questions}</div>
+                            <div style="font-weight:bold;">狀態: ${statusText}</div>
+                            <div>上次複習: ${lastReviewText}</div>
+                            <div>下次複習: ${nextReviewText}</div>
+                            ${perfHtml}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            // Render to canvas with html2canvas (supports Chinese fonts)
+            try {
+                const canvas = await html2canvas(container, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+                
+                // Create PDF and add the rendered image
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                // If content is too tall, split into multiple pages
+                const pageHeight = 295; // A4 height in mm
+                let heightLeft = imgHeight;
+                let position = 0;
+                
+                doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                
+                doc.save('srs_report_advanced.pdf');
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                alert('SRS 報告匯出失敗，請稍後再試');
+            } finally {
+                // Clean up
+                document.body.removeChild(container);
+            }
+        }
+
+        // ============== EXPERIMENTAL AUTO-PLANNING FEATURES ==============
+        
+        // Intelligent workload balancing - distributes exams evenly over time
+        function experimentalWorkloadBalancing() {
+            const incomplete = exams.filter(e => !e.completed);
+            if (incomplete.length === 0) {
+                alert('沒有未完成的考卷可以規劃');
+                return;
+            }
+            
+            const days = parseInt(prompt('請輸入要分配的天數（建議 7-30 天）:', '14'));
+            if (!days || days < 1) return;
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Calculate total questions
+            const totalQuestions = incomplete.reduce((sum, e) => sum + e.questions, 0);
+            const questionsPerDay = Math.ceil(totalQuestions / days);
+            
+            // Sort by subject for better distribution
+            const sorted = [...incomplete].sort((a, b) => a.subject.localeCompare(b.subject));
+            
+            const changes = [];
+            let currentDay = 0;
+            let currentDayQuestions = 0;
+            
+            sorted.forEach(exam => {
+                if (currentDayQuestions >= questionsPerDay && currentDay < days - 1) {
+                    currentDay++;
+                    currentDayQuestions = 0;
+                }
+                
+                const planDate = new Date(today);
+                planDate.setDate(planDate.getDate() + currentDay);
+                
+                changes.push({
+                    id: exam.id,
+                    subject: exam.subject,
+                    chapter: exam.chapter,
+                    oldDate: exam.dueDate,
+                    newDate: formatDate(planDate),
+                    srsLevel: exam.srsLevel || 0,
+                    reason: `工作量平衡 (第 ${currentDay + 1} 天, ${currentDayQuestions + exam.questions}/${questionsPerDay} 題)`,
+                    type: 'balance'
+                });
+                
+                currentDayQuestions += exam.questions;
+            });
+            
+            showPlanPreview(changes, '🔄 工作量平衡規劃');
+        }
+        
+        // Priority-based planning - urgent items first
+        function experimentalPriorityPlanning() {
+            const incomplete = exams.filter(e => !e.completed);
+            if (incomplete.length === 0) {
+                alert('沒有未完成的考卷可以規劃');
+                return;
+            }
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Categorize exams
+            const urgent = incomplete.filter(e => {
+                if (!e.dueDate) return false;
+                const due = new Date(e.dueDate);
+                const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+                return diff <= 3 && diff >= 0;
+            });
+            
+            const noDueDate = incomplete.filter(e => !e.dueDate);
+            const scheduled = incomplete.filter(e => {
+                if (!e.dueDate) return false;
+                const due = new Date(e.dueDate);
+                const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+                return diff > 3;
+            });
+            
+            const changes = [];
+            
+            // Keep urgent items as is or move to today if overdue
+            urgent.forEach(exam => {
+                const due = new Date(exam.dueDate);
+                if (due < today) {
+                    changes.push({
+                        id: exam.id,
+                        subject: exam.subject,
+                        chapter: exam.chapter,
+                        oldDate: exam.dueDate,
+                        newDate: formatDate(today),
+                        srsLevel: exam.srsLevel || 0,
+                        reason: '緊急項目 - 已過期，移至今天',
+                        type: 'urgent'
+                    });
+                }
+            });
+            
+            // Distribute items without due date over next week
+            noDueDate.forEach((exam, index) => {
+                const planDate = new Date(today);
+                planDate.setDate(planDate.getDate() + (index % 7) + 1);
+                
+                changes.push({
+                    id: exam.id,
+                    subject: exam.subject,
+                    chapter: exam.chapter,
+                    oldDate: null,
+                    newDate: formatDate(planDate),
+                    srsLevel: exam.srsLevel || 0,
+                    reason: '無到期日 - 分配至未來一週',
+                    type: 'auto'
+                });
+            });
+            
+            showPlanPreview(changes, '⚡ 優先級規劃');
+        }
+        
+        // Subject rotation planning - alternate between subjects
+        function experimentalSubjectRotation() {
+            const incomplete = exams.filter(e => !e.completed);
+            if (incomplete.length === 0) {
+                alert('沒有未完成的考卷可以規劃');
+                return;
+            }
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Group by subject
+            const bySubject = {};
+            incomplete.forEach(exam => {
+                if (!bySubject[exam.subject]) bySubject[exam.subject] = [];
+                bySubject[exam.subject].push(exam);
+            });
+            
+            const subjects = Object.keys(bySubject);
+            const changes = [];
+            let dayOffset = 0;
+            
+            // Rotate through subjects
+            let hasMore = true;
+            let subjectIndex = 0;
+            
+            while (hasMore) {
+                hasMore = false;
+                
+                for (let i = 0; i < subjects.length; i++) {
+                    const subject = subjects[i];
+                    const examsInSubject = bySubject[subject];
+                    
+                    if (examsInSubject.length > 0) {
+                        hasMore = true;
+                        const exam = examsInSubject.shift();
+                        
+                        const planDate = new Date(today);
+                        planDate.setDate(planDate.getDate() + dayOffset);
+                        
+                        changes.push({
+                            id: exam.id,
+                            subject: exam.subject,
+                            chapter: exam.chapter,
+                            oldDate: exam.dueDate,
+                            newDate: formatDate(planDate),
+                            srsLevel: exam.srsLevel || 0,
+                            reason: `科目輪替 - 第 ${dayOffset + 1} 天`,
+                            type: 'rotation'
+                        });
+                        
+                        dayOffset++;
+                    }
+                }
+            }
+            
+            showPlanPreview(changes, '🔀 科目輪替規劃');
+        }
+        
+        // Generic plan preview function
+        function showPlanPreview(changes, title) {
+            if (changes.length === 0) {
+                alert('沒有需要變更的項目');
+                return;
+            }
+            
+            const modal = document.createElement('div');
+            modal.id = 'exp-plan-modal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.3s';
+            
+            const content = document.createElement('div');
+            content.style.cssText = 'background:var(--container-bg);padding:24px;border-radius:12px;max-width:800px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.3)';
+            
+            let html = `
+                <h2 style="margin:0 0 16px 0;color:var(--header-color)">${title}</h2>
+                <div style="margin-bottom:20px;padding:12px;background:var(--secondary-color);border-radius:8px;">
+                    <div style="font-weight:bold;margin-bottom:8px">📊 規劃摘要</div>
+                    <div>總計變更: <strong>${changes.length}</strong> 項</div>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <div style="font-weight:bold;margin-bottom:12px">📝 規劃詳情 (可編輯到期日)</div>
+                    <div id="exp-plan-items-container">
+            `;
+            
+            changes.forEach((change, index) => {
+                const typeColors = {
+                    balance: '#3498db',
+                    urgent: '#e74c3c',
+                    auto: '#27ae60',
+                    rotation: '#9b59b6'
+                };
+                const typeColor = typeColors[change.type] || '#95a5a6';
+                
+                html += `
+                    <div style="border:1px solid var(--border-color);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--container-bg)">
+                        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+                            <div style="flex:1">
+                                <div style="font-weight:bold;color:var(--header-color)">${change.subject} - ${change.chapter}</div>
+                                <div style="font-size:12px;color:${typeColor};margin-top:4px">${change.reason}</div>
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;font-size:13px">
+                            <div>
+                                <div style="color:var(--muted);font-size:11px">原到期日</div>
+                                <div>${change.oldDate || '未設定'}</div>
+                            </div>
+                            <div style="color:var(--primary-color);font-weight:bold">→</div>
+                            <div>
+                                <div style="color:var(--muted);font-size:11px">新到期日</div>
+                                <input type="date" 
+                                    data-exp-change-index="${index}" 
+                                    value="${change.newDate}" 
+                                    style="padding:6px;border:1px solid var(--border-color);border-radius:4px;background:var(--container-bg);color:var(--text-color);width:100%" />
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+                <div style="display:flex;gap:12px;justify-content:flex-end">
+                    <button id="exp-cancel-btn" style="padding:10px 20px;border:1px solid var(--border-color);border-radius:8px;background:var(--secondary-color);color:var(--text-color);cursor:pointer;font-size:14px">取消</button>
+                    <button id="exp-apply-btn" style="padding:10px 20px;border:none;border-radius:8px;background:var(--primary-color);color:white;cursor:pointer;font-size:14px;font-weight:bold">套用規劃</button>
+                </div>
+            `;
+            
+            content.innerHTML = html;
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            window.currentExpPlan = changes;
+            
+            // Add event listeners
+            document.getElementById('exp-cancel-btn').addEventListener('click', window.closeExpPlanModal);
+            document.getElementById('exp-apply-btn').addEventListener('click', window.applyAndCloseExpPlan);
+            
+            // Add listeners for date inputs
+            document.querySelectorAll('[data-exp-change-index]').forEach(input => {
+                input.addEventListener('change', function() {
+                    const index = parseInt(this.getAttribute('data-exp-change-index'));
+                    window.updateExpPlanChange(index, this.value);
+                });
+            });
+        }
+
+        
+        // Show experimental planning options
+        window.showExperimentalPlanningMenu = function() {
+            const modal = document.createElement('div');
+            modal.id = 'exp-menu-modal';
+            modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.3s';
+            
+            const content = document.createElement('div');
+            content.style.cssText = 'background:var(--container-bg);padding:24px;border-radius:12px;max-width:600px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.3)';
+            
+            content.innerHTML = `
+                <h2 style="margin:0 0 16px 0;color:var(--header-color)">🧪 實驗性自動規劃功能</h2>
+                <p style="color:var(--muted);margin-bottom:20px;font-size:14px">選擇一個規劃策略來自動安排你的考卷</p>
+                
+                <div style="display:flex;flex-direction:column;gap:12px">
+                    <button id="exp-workload-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:16px;margin-bottom:4px">🔄 工作量平衡規劃</div>
+                        <div style="font-size:13px;color:var(--muted)">將所有未完成的考卷均勻分配到指定天數內，確保每天工作量相近</div>
+                    </button>
+                    
+                    <button id="exp-priority-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:16px;margin-bottom:4px">⚡ 優先級規劃</div>
+                        <div style="font-size:13px;color:var(--muted)">根據到期日緊急程度自動安排，優先處理即將到期的項目</div>
+                    </button>
+                    
+                    <button id="exp-rotation-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:16px;margin-bottom:4px">🔀 科目輪替規劃</div>
+                        <div style="font-size:13px;color:var(--muted)">交替安排不同科目的考卷，避免單一科目過於密集</div>
+                    </button>
+                </div>
+                
+                <div style="margin-top:20px;display:flex;justify-content:flex-end">
+                    <button id="exp-menu-close-btn" style="padding:10px 20px;border:1px solid var(--border-color);border-radius:8px;background:var(--secondary-color);color:var(--text-color);cursor:pointer;font-size:14px">關閉</button>
+                </div>
+            `;
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // Add event listeners after appending to DOM
+            document.getElementById('exp-workload-btn').addEventListener('click', () => {
+                window.closeExpMenu();
+                experimentalWorkloadBalancing();
+            });
+            document.getElementById('exp-priority-btn').addEventListener('click', () => {
+                window.closeExpMenu();
+                experimentalPriorityPlanning();
+            });
+            document.getElementById('exp-rotation-btn').addEventListener('click', () => {
+                window.closeExpMenu();
+                experimentalSubjectRotation();
+            });
+            document.getElementById('exp-menu-close-btn').addEventListener('click', window.closeExpMenu);
+        };
+
+
+        // ==================== END EXPERIMENTAL PLANNING ====================
+
 
         G.sortByQuestionsBtn.addEventListener('click', () => { sortState.key = 'questions'; sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; render(); });
         G.sortByChapterBtn.addEventListener('click', () => { sortState.key = 'chapter'; sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc'; render(); });
@@ -1216,7 +2257,10 @@
                 dailyCapacity: 50,
                 priorityMode: 'due-date',
                 bufferDays: 2,
-                onboardingComplete: false
+                onboardingComplete: false,
+                capacityMode: 'simple', // 'simple' or 'calendar'
+                excludedDates: [], // Array of dates to exclude (YYYY-MM-DD format)
+                calendarCapacity: {} // Object with date as key and capacity as value
             },
             schedule: []
         };
@@ -1245,7 +2289,7 @@
 
         // Smart scheduling algorithm
         function generateSchedule() {
-            const { dailyCapacity, priorityMode, bufferDays } = scheduler.settings;
+            const { dailyCapacity, priorityMode, bufferDays, capacityMode, excludedDates, calendarCapacity } = scheduler.settings;
             
             // Filter incomplete exams
             const incomplete = exams.filter(e => !e.completed);
@@ -1294,14 +2338,35 @@
             while (examQueue.length > 0) {
                 const currentDay = new Date(today);
                 currentDay.setDate(currentDay.getDate() + dayOffset);
+                const dateStr = currentDay.toISOString().split('T')[0];
+                
+                // Check if date is excluded
+                const isExcluded = excludedDates && excludedDates.includes(dateStr);
+                
+                // Get capacity for this day
+                let remainingCapacity = 0;
+                if (!isExcluded) {
+                    if (capacityMode === 'calendar') {
+                        // Use calendar capacity
+                        remainingCapacity = (calendarCapacity && calendarCapacity[dateStr]) || 0;
+                    } else {
+                        // Use daily capacity
+                        remainingCapacity = dailyCapacity;
+                    }
+                }
+                
+                // Skip this day if no capacity or excluded
+                if (remainingCapacity <= 0) {
+                    dayOffset++;
+                    if (dayOffset > 90) break; // Safety limit
+                    continue;
+                }
                 
                 const daySchedule = {
-                    date: currentDay.toISOString().split('T')[0],
+                    date: dateStr,
                     items: [],
                     totalQuestions: 0
                 };
-
-                let remainingCapacity = dailyCapacity;
                 
                 while (remainingCapacity > 0 && examQueue.length > 0) {
                     const exam = examQueue[0];
@@ -1370,6 +2435,8 @@
             scheduler.schedule.forEach((day, idx) => {
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'schedule-day';
+                dayDiv.setAttribute('data-day-index', idx);
+                dayDiv.setAttribute('data-day-date', day.date);
                 
                 const date = new Date(day.date);
                 const today = new Date();
@@ -1389,9 +2456,9 @@
                         <div class="schedule-day-title">第 ${idx + 1} 天 - ${dayLabel} (週${weekday}) ${day.date}</div>
                         <div class="schedule-day-stats">${day.totalQuestions} 題</div>
                     </div>
-                    <div class="schedule-items">
-                        ${day.items.map(item => `
-                            <div class="schedule-item">
+                    <div class="schedule-items" id="schedule-items-${idx}">
+                        ${day.items.map((item, itemIdx) => `
+                            <div class="schedule-item" draggable="true" data-exam-id="${item.id}" data-day-index="${idx}" data-item-index="${itemIdx}">
                                 <div class="schedule-item-subject">${escapeHtml(item.subject)}</div>
                                 <div class="schedule-item-chapter">
                                     ${escapeHtml(item.chapter)}
@@ -1405,6 +2472,41 @@
                 `;
                 
                 container.appendChild(dayDiv);
+            });
+
+            // Setup drag and drop functionality using SortableJS
+            scheduler.schedule.forEach((day, idx) => {
+                const itemsContainer = document.getElementById(`schedule-items-${idx}`);
+                if (itemsContainer && window.Sortable) {
+                    new Sortable(itemsContainer, {
+                        group: 'schedule-items',
+                        animation: 150,
+                        ghostClass: 'sortable-ghost',
+                        chosenClass: 'sortable-chosen',
+                        dragClass: 'sortable-drag',
+                        onEnd: function(evt) {
+                            const examId = parseInt(evt.item.getAttribute('data-exam-id'));
+                            const oldDayIndex = parseInt(evt.from.closest('.schedule-day').getAttribute('data-day-index'));
+                            const newDayIndex = parseInt(evt.to.closest('.schedule-day').getAttribute('data-day-index'));
+                            
+                            if (oldDayIndex !== newDayIndex) {
+                                // Item was moved to a different day
+                                const newDate = scheduler.schedule[newDayIndex].date;
+                                
+                                // Update the exam's due date
+                                const exam = exams.find(e => e.id === examId);
+                                if (exam) {
+                                    exam.dueDate = newDate;
+                                    saveExams();
+                                    render();
+                                    
+                                    // Regenerate schedule to reflect the change
+                                    generateSchedule();
+                                }
+                            }
+                        }
+                    });
+                }
             });
         }
 
@@ -1435,11 +2537,15 @@
             const dailyCapacity = parseInt(document.getElementById('daily-capacity').value) || 50;
             const priorityMode = document.getElementById('priority-mode').value;
             const bufferDays = parseInt(document.getElementById('buffer-days').value) || 2;
+            const capacityMode = document.getElementById('capacity-mode').value;
             
             scheduler.settings = {
                 dailyCapacity,
                 priorityMode,
                 bufferDays,
+                capacityMode,
+                excludedDates: scheduler.settings.excludedDates || [],
+                calendarCapacity: scheduler.settings.calendarCapacity || {},
                 onboardingComplete: true
             };
             
@@ -1454,8 +2560,191 @@
             document.getElementById('daily-capacity').value = scheduler.settings.dailyCapacity;
             document.getElementById('priority-mode').value = scheduler.settings.priorityMode;
             document.getElementById('buffer-days').value = scheduler.settings.bufferDays;
+            document.getElementById('capacity-mode').value = scheduler.settings.capacityMode || 'simple';
+            
+            // Trigger capacity mode change to show correct UI
+            handleCapacityModeChange();
+            
+            // Render excluded dates
+            renderExcludedDates();
+            
+            // Render calendar if in calendar mode
+            if (scheduler.settings.capacityMode === 'calendar') {
+                renderCalendarCapacity();
+            }
+            
             showOnboarding();
         }
+        
+        // Handle capacity mode toggle
+        function handleCapacityModeChange() {
+            const mode = document.getElementById('capacity-mode').value;
+            const simpleSettings = document.getElementById('simple-mode-settings');
+            const calendarSettings = document.getElementById('calendar-mode-settings');
+            
+            if (mode === 'simple') {
+                simpleSettings.style.display = 'block';
+                calendarSettings.style.display = 'none';
+            } else {
+                simpleSettings.style.display = 'none';
+                calendarSettings.style.display = 'block';
+                renderCalendarCapacity();
+            }
+        }
+        
+        // Render excluded dates tags
+        function renderExcludedDates() {
+            const container = document.getElementById('excluded-dates-list');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            if (!scheduler.settings.excludedDates || scheduler.settings.excludedDates.length === 0) {
+                container.innerHTML = '<div class="small muted">尚未排除任何日期</div>';
+                return;
+            }
+            
+            scheduler.settings.excludedDates.forEach(date => {
+                const tag = document.createElement('div');
+                tag.className = 'excluded-date-tag';
+                tag.innerHTML = `
+                    <span>${date}</span>
+                    <button class="remove-btn" onclick="removeExcludedDate('${date}')">×</button>
+                `;
+                container.appendChild(tag);
+            });
+        }
+        
+        // Add excluded date
+        window.addExcludedDate = function() {
+            const picker = document.getElementById('excluded-date-picker');
+            const date = picker.value;
+            
+            if (!date) {
+                alert('請選擇要排除的日期');
+                return;
+            }
+            
+            if (!scheduler.settings.excludedDates) {
+                scheduler.settings.excludedDates = [];
+            }
+            
+            if (scheduler.settings.excludedDates.includes(date)) {
+                alert('此日期已經被排除');
+                return;
+            }
+            
+            scheduler.settings.excludedDates.push(date);
+            scheduler.settings.excludedDates.sort();
+            renderExcludedDates();
+            picker.value = '';
+        };
+        
+        // Remove excluded date
+        window.removeExcludedDate = function(date) {
+            if (!scheduler.settings.excludedDates) return;
+            scheduler.settings.excludedDates = scheduler.settings.excludedDates.filter(d => d !== date);
+            renderExcludedDates();
+        };
+        
+        // Calendar capacity state
+        let currentCalendarMonth = new Date();
+        
+        // Render calendar for capacity setting
+        function renderCalendarCapacity() {
+            const container = document.getElementById('calendar-container');
+            if (!container) return;
+            
+            const year = currentCalendarMonth.getFullYear();
+            const month = currentCalendarMonth.getMonth();
+            
+            const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+            
+            let html = `
+                <div class="calendar-month-header">
+                    <button class="calendar-nav-btn" onclick="prevCalendarMonth()">◀ 上個月</button>
+                    <div class="calendar-month-title">${year} 年 ${monthNames[month]}</div>
+                    <button class="calendar-nav-btn" onclick="nextCalendarMonth()">下個月 ▶</button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="calendar-day-header">日</div>
+                    <div class="calendar-day-header">一</div>
+                    <div class="calendar-day-header">二</div>
+                    <div class="calendar-day-header">三</div>
+                    <div class="calendar-day-header">四</div>
+                    <div class="calendar-day-header">五</div>
+                    <div class="calendar-day-header">六</div>
+            `;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Add empty cells for days before month starts
+            for (let i = 0; i < firstDay; i++) {
+                html += '<div class="calendar-day disabled"></div>';
+            }
+            
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                date.setHours(0, 0, 0, 0);
+                const dateStr = formatDate(date);
+                const isPast = date < today;
+                const capacity = scheduler.settings.calendarCapacity[dateStr] || 0;
+                
+                const hasCapacityClass = capacity > 0 ? 'has-capacity' : '';
+                const disabledClass = isPast ? 'disabled' : '';
+                
+                html += `
+                    <div class="calendar-day ${hasCapacityClass} ${disabledClass}" 
+                         onclick="${isPast ? '' : `setDayCapacity('${dateStr}')`}">
+                        <div class="calendar-day-number">${day}</div>
+                        ${capacity > 0 ? `<div class="calendar-day-capacity">${capacity} 題</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        // Navigate calendar months
+        window.prevCalendarMonth = function() {
+            currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() - 1);
+            renderCalendarCapacity();
+        };
+        
+        window.nextCalendarMonth = function() {
+            currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + 1);
+            renderCalendarCapacity();
+        };
+        
+        // Set capacity for a specific day
+        window.setDayCapacity = function(dateStr) {
+            const currentCapacity = scheduler.settings.calendarCapacity[dateStr] || 0;
+            const newCapacity = prompt(`設定 ${dateStr} 的可完成題數：`, currentCapacity);
+            
+            if (newCapacity === null) return; // User cancelled
+            
+            const capacity = parseInt(newCapacity);
+            if (isNaN(capacity) || capacity < 0) {
+                alert('請輸入有效的題數（0 或以上）');
+                return;
+            }
+            
+            if (!scheduler.settings.calendarCapacity) {
+                scheduler.settings.calendarCapacity = {};
+            }
+            
+            if (capacity === 0) {
+                delete scheduler.settings.calendarCapacity[dateStr];
+            } else {
+                scheduler.settings.calendarCapacity[dateStr] = capacity;
+            }
+            
+            renderCalendarCapacity();
+        };
 
         // Event listeners for scheduler
         const showSchedulerBtn = document.getElementById('show-scheduler');
@@ -1503,6 +2792,18 @@
                 hideOnboarding();
             });
         }
+        
+        // Add event listeners for capacity mode and excluded dates
+        const capacityModeSelect = document.getElementById('capacity-mode');
+        const addExcludedDateBtn = document.getElementById('add-excluded-date');
+        
+        if (capacityModeSelect) {
+            capacityModeSelect.addEventListener('change', handleCapacityModeChange);
+        }
+        
+        if (addExcludedDateBtn) {
+            addExcludedDateBtn.addEventListener('click', window.addExcludedDate);
+        }
 
         // Initialize scheduler
         loadSchedulerSettings();
@@ -1529,6 +2830,22 @@
         G.clearDueBtn.addEventListener('click', () => {
             G.newDue.value = '';
         });
+
+        // Add SRS and experimental planning button references
+        const srsAutoPlanBtn = document.getElementById('srs-auto-plan');
+        const experimentalPlanBtn = document.getElementById('experimental-plan');
+        const exportSrsReportBtn = document.getElementById('export-srs-report');
+
+        if (srsAutoPlanBtn) {
+            srsAutoPlanBtn.addEventListener('click', srsAutoPlan);
+        }
+        if (experimentalPlanBtn) {
+            experimentalPlanBtn.addEventListener('click', window.showExperimentalPlanningMenu);
+        }
+        if (exportSrsReportBtn) {
+            exportSrsReportBtn.addEventListener('click', exportSRSReport);
+        }
+
 
     });
 
