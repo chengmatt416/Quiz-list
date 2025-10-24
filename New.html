@@ -675,16 +675,9 @@
     
     window.applyAndCloseExpPlan = function() {
         if (window.currentExpPlan && window.currentExpPlan.length > 0) {
-            // Call the local functions through stored references
-            if (window._exams && window._saveExams && window._render) {
-                window.currentExpPlan.forEach(change => {
-                    const exam = window._exams.find(e => e.id === change.id);
-                    if (exam) {
-                        exam.dueDate = change.newDate;
-                    }
-                });
-                window._saveExams();
-                window._render();
+            // Call through the apply function that will be set up later
+            if (window._applyExpPlan) {
+                window._applyExpPlan(window.currentExpPlan);
                 alert(`✅ 已成功套用 ${window.currentExpPlan.length} 項規劃！`);
             }
         }
@@ -1340,8 +1333,21 @@
             render();
         }
         
+        // Apply experimental plan changes
+        function applyExpPlan(changes) {
+            changes.forEach(change => {
+                const exam = exams.find(e => e.id === change.id);
+                if (exam) {
+                    exam.dueDate = change.newDate;
+                }
+            });
+            saveExams();
+            render();
+        }
+        
         // Store references for global functions
         window._applySRSPlan = applySRSPlan;
+        window._applyExpPlan = applyExpPlan;
         window._exams = exams;
         window._saveExams = saveExams;
         window._render = render;
