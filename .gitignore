@@ -1,0 +1,22 @@
+# Build and generation scripts (keep generated assets)
+generate-icons.py
+generate-icons.js
+generate-icons.html
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Node
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

@@ -179,6 +179,34 @@ durations: { pom: 25*60, short: 5*60, long: 15*60 }
 - 響應式字體
 - 最佳化的番茄鐘計時器顯示
 
+### 🚀 安裝為 WebApp（Android 和 iOS）
+
+此應用程式支援 Progressive Web App (PWA)，可以安裝到您的手機主畫面，像原生應用程式一樣使用。
+
+#### Android 安裝步驟：
+1. 使用 Chrome 瀏覽器開啟網站：https://quizlist.techtools.qzz.io
+2. 點擊瀏覽器右上角的「⋮」選單
+3. 選擇「新增至主畫面」或「安裝應用程式」
+4. 輸入應用程式名稱（預設：考卷清單）
+5. 點擊「新增」或「安裝」
+6. 應用程式圖示將出現在您的主畫面上
+
+#### iOS (iPhone/iPad) 安裝步驟：
+1. 使用 Safari 瀏覽器開啟網站：https://quizlist.techtools.qzz.io
+2. 點擊底部中央的「分享」按鈕 (□ 帶向上箭頭)
+3. 向下滾動並選擇「加入主畫面」
+4. 輸入應用程式名稱（預設：考卷清單）
+5. 點擊右上角的「新增」
+6. 應用程式圖示將出現在您的主畫面上
+
+#### PWA 功能特色：
+- ✅ **離線存取**：即使沒有網路連線也能使用
+- ✅ **快速載入**：資源已快取，啟動速度更快
+- ✅ **全螢幕體驗**：沒有瀏覽器導覽列，更像原生應用程式
+- ✅ **主畫面圖示**：直接從主畫面啟動
+- ✅ **自動更新**：應用程式會在背景自動更新
+- ✅ **推播通知**：番茄鐘計時完成時可接收通知（需授權）
+
 ## 🤝 貢獻指南
 
 歡迎貢獻！您可以：
@@ -381,6 +409,34 @@ All versions are responsive and work on mobile devices. The interface adapts to 
 - Touch-friendly buttons
 - Responsive typography
 - Optimized Pomodoro timer display
+
+### 🚀 Install as WebApp (Android & iOS)
+
+This application supports Progressive Web App (PWA) technology and can be installed on your phone's home screen to work like a native app.
+
+#### Android Installation:
+1. Open the website using Chrome browser: https://quizlist.techtools.qzz.io
+2. Tap the "⋮" menu in the top right corner
+3. Select "Add to Home screen" or "Install app"
+4. Enter app name (default: 考卷清單)
+5. Tap "Add" or "Install"
+6. The app icon will appear on your home screen
+
+#### iOS (iPhone/iPad) Installation:
+1. Open the website using Safari browser: https://quizlist.techtools.qzz.io
+2. Tap the "Share" button at the bottom center (□ with upward arrow)
+3. Scroll down and select "Add to Home Screen"
+4. Enter app name (default: 考卷清單)
+5. Tap "Add" in the top right
+6. The app icon will appear on your home screen
+
+#### PWA Features:
+- ✅ **Offline Access**: Works even without internet connection
+- ✅ **Fast Loading**: Resources are cached for faster startup
+- ✅ **Fullscreen Experience**: No browser navigation bar, more like a native app
+- ✅ **Home Screen Icon**: Launch directly from home screen
+- ✅ **Auto-Updates**: App updates automatically in the background
+- ✅ **Push Notifications**: Receive notifications when Pomodoro timer completes (requires permission)
 
 ## 🤝 Contributing
 
