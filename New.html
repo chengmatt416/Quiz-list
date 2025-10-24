@@ -388,7 +388,12 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
-        
+        // Initial data (can be customized)
+        const initialData = [
+            { id: 1, subject: '數學', chapter: '第一章', questions: 50, completed: false, corrected: false, dueDate: null },
+            { id: 2, subject: '英文', chapter: '第二章', questions: 40, completed: false, corrected: false, dueDate: null },
+            { id: 3, subject: '國文', chapter: '第三章', questions: 45, completed: false, corrected: false, dueDate: null }
+        ];
 
         let exams = [];
         let sortState = { key: 'chapter', direction: 'asc' };
