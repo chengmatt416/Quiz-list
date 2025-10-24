@@ -525,7 +525,7 @@
             
             <div id="schedule-view">
                 <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-                    <button id="apply-schedule" class="icon-btn" style="background:#27ae60">✓ 套用排程到原始計畫</button>
+                    <button id="apply-schedule" class="icon-btn" style="background:#27ae60" aria-label="Apply schedule to original plan">✓ 套用排程到原始計畫</button>
                     <button id="regenerate-schedule" class="icon-btn">重新生成排程</button>
                     <button id="schedule-settings" class="icon-btn theme-toggle">排程設定</button>
                     <button id="hide-schedule" class="icon-btn theme-toggle">隱藏排程</button>
@@ -1583,8 +1583,8 @@
                 
                 // Calculate workload distribution
                 const workloadByDay = scheduler.schedule.map(day => day.totalQuestions);
-                const maxWorkload = Math.max(...workloadByDay);
-                const minWorkload = Math.min(...workloadByDay);
+                const maxWorkload = workloadByDay.length > 0 ? Math.max(...workloadByDay) : 0;
+                const minWorkload = workloadByDay.length > 0 ? Math.min(...workloadByDay) : 0;
                 
                 // Get next 7 days schedule preview
                 const next7Days = scheduler.schedule.slice(0, 7);
@@ -2527,6 +2527,13 @@
                             const examId = parseInt(evt.item.getAttribute('data-exam-id'));
                             const oldDayIndex = parseInt(evt.from.closest('.schedule-day').getAttribute('data-day-index'));
                             const newDayIndex = parseInt(evt.to.closest('.schedule-day').getAttribute('data-day-index'));
+                            
+                            // Validate indices
+                            if (oldDayIndex < 0 || oldDayIndex >= scheduler.schedule.length || 
+                                newDayIndex < 0 || newDayIndex >= scheduler.schedule.length) {
+                                console.error('Invalid day index in drag-and-drop');
+                                return;
+                            }
                             
                             if (oldDayIndex !== newDayIndex) {
                                 // Item was moved to a different day
