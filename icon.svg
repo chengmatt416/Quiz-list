@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="64" fill="#3498db"/>
+  
+  <!-- Document icon -->
+  <rect x="128" y="96" width="256" height="320" rx="16" fill="#ffffff"/>
+  
+  <!-- Header lines -->
+  <rect x="160" y="140" width="192" height="16" rx="8" fill="#3498db"/>
+  
+  <!-- List items with checkboxes -->
+  <g id="item1">
+    <rect x="160" y="190" width="24" height="24" rx="4" fill="none" stroke="#3498db" stroke-width="3"/>
+    <polyline points="165,202 172,209 185,196" fill="none" stroke="#27ae60" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="200" y="194" width="144" height="16" rx="4" fill="#ecf0f1"/>
+  </g>
+  
+  <g id="item2">
+    <rect x="160" y="240" width="24" height="24" rx="4" fill="none" stroke="#3498db" stroke-width="3"/>
+    <rect x="200" y="244" width="144" height="16" rx="4" fill="#ecf0f1"/>
+  </g>
+  
+  <g id="item3">
+    <rect x="160" y="290" width="24" height="24" rx="4" fill="none" stroke="#3498db" stroke-width="3"/>
+    <polyline points="165,302 172,309 185,296" fill="none" stroke="#27ae60" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="200" y="294" width="144" height="16" rx="4" fill="#ecf0f1"/>
+  </g>
+  
+  <g id="item4">
+    <rect x="160" y="340" width="24" height="24" rx="4" fill="none" stroke="#3498db" stroke-width="3"/>
+    <rect x="200" y="344" width="144" height="16" rx="4" fill="#ecf0f1"/>
+  </g>
+  
+  <!-- Pomodoro timer icon in corner -->
+  <circle cx="360" cy="380" r="32" fill="#e74c3c" opacity="0.9"/>
+  <path d="M 360 348 L 360 380 L 384 380" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

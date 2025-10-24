@@ -4,6 +4,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>考卷清單與訂正進度（含到期日、匯出日曆、番茄鐘）</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="一個功能完整的考卷清單管理系統，具備到期日追蹤、日曆匯出及番茄鐘計時功能" />
+    <meta name="theme-color" content="#3498db" />
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- iOS Specific Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="考卷清單" />
+    
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="/icon-72x72.png" />
+    <link rel="apple-touch-icon" sizes="96x96" href="/icon-96x96.png" />
+    <link rel="apple-touch-icon" sizes="128x128" href="/icon-128x128.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="/icon-144x144.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="384x384" href="/icon-384x384.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512x512.png" />
+    
+    <!-- Standard Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icon-72x72.png" />
+    
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileColor" content="#3498db" />
+    <meta name="msapplication-TileImage" content="/icon-144x144.png" />
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
@@ -1075,6 +1107,72 @@
         });
 
     });
+
+    // Register Service Worker for PWA support
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('ServiceWorker registered: ', registration);
+                    
+                    // Check for updates periodically
+                    setInterval(() => {
+                        registration.update();
+                    }, 60000); // Check every minute
+                })
+                .catch(error => {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+        });
+    }
+
+    // Prompt for installation (A2HS - Add to Home Screen)
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent the mini-infobar from appearing on mobile
+        e.preventDefault();
+        // Stash the event so it can be triggered later
+        deferredPrompt = e;
+        
+        // Show install button/banner (optional - can be customized)
+        console.log('App can be installed');
+        
+        // Optionally show a custom install prompt
+        const installBanner = document.createElement('div');
+        installBanner.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--primary-color);color:white;padding:12px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:1000;display:flex;gap:10px;align-items:center;';
+        installBanner.innerHTML = `
+            <span>安裝應用程式到主畫面</span>
+            <button id="install-btn" style="background:white;color:#3498db;border:none;padding:6px 12px;border-radius:5px;cursor:pointer;font-weight:600;">安裝</button>
+            <button id="dismiss-install" style="background:rgba(255,255,255,0.2);color:white;border:none;padding:6px 12px;border-radius:5px;cursor:pointer;">&times;</button>
+        `;
+        document.body.appendChild(installBanner);
+        
+        document.getElementById('install-btn').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to install prompt: ${outcome}`);
+                deferredPrompt = null;
+                installBanner.remove();
+            }
+        });
+        
+        document.getElementById('dismiss-install').addEventListener('click', () => {
+            installBanner.remove();
+        });
+    });
+
+    // Track when the app was installed
+    window.addEventListener('appinstalled', (evt) => {
+        console.log('App was installed successfully');
+    });
+
+    // Detect if running as standalone app
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+        console.log('Running as installed PWA');
+        // Add any PWA-specific behavior here
+        document.body.classList.add('pwa-mode');
+    }
     </script>
 </body>
 </html>
