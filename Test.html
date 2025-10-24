@@ -1740,9 +1740,10 @@
                 </div>
             `;
             
+            modal.appendChild(content);
             document.body.appendChild(modal);
             
-            // Add event listeners
+            // Add event listeners after appending to DOM
             document.getElementById('exp-workload-btn').addEventListener('click', () => {
                 window.closeExpMenu();
                 experimentalWorkloadBalancing();
