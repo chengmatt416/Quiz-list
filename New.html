@@ -451,8 +451,6 @@
                     <button id="show-scheduler" class="icon-btn">智慧排程 🤖</button>
                     <button id="show-pomodoro" class="icon-btn">顯示番茄鐘</button>
                     <button id="pom-fullscreen-toggle" class="icon-btn">番茄鐘全螢幕</button>
-                    <button id="srs-auto-plan" class="icon-btn">SRS 自動規劃</button>
-                    <button id="experimental-plan" class="icon-btn" style="background:#9b59b6;color:white">🧪 實驗性規劃</button>
                     <button id="export-srs-report" class="icon-btn">匯出 SRS 報告</button>
                     <button id="export-all-ics" class="icon-btn">匯出全部到日曆</button>
                     <button id="export-json" class="icon-btn">匯出 JSON</button>
@@ -512,11 +510,11 @@
             <div class="add-exam-form">
                 <input type="text" id="new-subject" placeholder="科目" required />
                 <input type="text" id="new-chapter" placeholder="章節" required />
-                <input type="number" id="new-questions" placeholder="題數" required min="1" />
+                <input type="number" id="new-questions" placeholder="題數（選填）" min="0" />
                 <input type="date" id="new-due" />
                 <button id="clear-due-btn" class="icon-btn small" style="background:#95a5a6">清除日期</button>
                 <button id="add-btn" class="submit">新增</button>
-                <div style="margin-left:auto" class="small muted">到期日(選填)，匯出日曆時會使用</div>
+                <div style="margin-left:auto" class="small muted">題數與到期日為選填，匯出日曆時會使用到期日</div>
             </div>
         </div>
 
@@ -971,7 +969,7 @@
             const chapter = G.newChapter.value.trim();
             const questions = Number(G.newQuestions.value || 0);
             const dueVal = G.newDue.value || null;
-            if(!subject || !chapter || questions <= 0) return alert('請填科目、章節與題數（題數需大於 0）');
+            if(!subject || !chapter) return alert('請填科目與章節');
             exams.push({
                 id: Date.now()+Math.floor(Math.random()*999),
                 subject, chapter, questions, completed:false, corrected:false, dueDate: dueVal ? dueVal : null,
@@ -987,10 +985,10 @@
             if(!ex) return;
             const subject = prompt('編輯科目：', ex.subject); if(subject === null) return;
             const chapter = prompt('編輯章節：', ex.chapter); if(chapter === null) return;
-            const questions = prompt('編輯題數：', ex.questions); if(questions === null) return;
+            const questions = prompt('編輯題數（可為 0）：', ex.questions); if(questions === null) return;
             const due = prompt('到期日 (YYYY-MM-DD, 空白表示清除)：', ex.dueDate || '');
             const qn = Number(questions);
-            if(isNaN(qn) || qn <= 0){ alert('題數不合法'); return; }
+            if(isNaN(qn) || qn < 0){ alert('題數不合法（必須為 0 或以上）'); return; }
             ex.subject = subject.trim() || ex.subject;
             ex.chapter = chapter.trim() || ex.chapter;
             ex.questions = qn;
@@ -2831,17 +2829,9 @@
             G.newDue.value = '';
         });
 
-        // Add SRS and experimental planning button references
-        const srsAutoPlanBtn = document.getElementById('srs-auto-plan');
-        const experimentalPlanBtn = document.getElementById('experimental-plan');
+        // Add SRS report button reference
         const exportSrsReportBtn = document.getElementById('export-srs-report');
 
-        if (srsAutoPlanBtn) {
-            srsAutoPlanBtn.addEventListener('click', srsAutoPlan);
-        }
-        if (experimentalPlanBtn) {
-            experimentalPlanBtn.addEventListener('click', window.showExperimentalPlanningMenu);
-        }
         if (exportSrsReportBtn) {
             exportSrsReportBtn.addEventListener('click', exportSRSReport);
         }
