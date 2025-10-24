@@ -316,6 +316,114 @@
             .modal-content{width:95%; padding:20px}
         }
         
+        /* Excluded dates tags */
+        .excluded-date-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 999px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .excluded-date-tag:hover {
+            opacity: 0.8;
+        }
+        .excluded-date-tag .remove-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0;
+            margin: 0;
+            line-height: 1;
+        }
+        
+        /* Calendar capacity grid */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .calendar-day-header {
+            text-align: center;
+            font-weight: bold;
+            padding: 8px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .calendar-day {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--container-bg);
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .calendar-day:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        .calendar-day.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .calendar-day.disabled:hover {
+            background: var(--container-bg);
+            transform: none;
+        }
+        .calendar-day.has-capacity {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border-color: #4caf50;
+        }
+        .calendar-day-number {
+            font-weight: bold;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+        .calendar-day-capacity {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+        .calendar-month-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 8px;
+            background: var(--secondary-color);
+            border-radius: 8px;
+        }
+        .calendar-month-title {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .calendar-nav-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .calendar-nav-btn:hover {
+            opacity: 0.8;
+        }
+        
         /* PWA Mode adjustments */
         body.pwa-mode {
             /* Add extra padding for iOS safe areas */
@@ -434,9 +542,38 @@
                 <p class="small muted">讓我們了解你的學習習慣，為你自動規劃考卷進度</p>
                 
                 <div class="form-group">
-                    <label for="daily-capacity">每日可完成題數：</label>
-                    <input type="number" id="daily-capacity" min="10" max="500" value="50" />
-                    <div class="small muted">建議根據你的時間和專注力設定（例如：50-100題）</div>
+                    <label for="capacity-mode">容量設定模式：</label>
+                    <select id="capacity-mode">
+                        <option value="simple">簡易模式（每日固定時間）</option>
+                        <option value="calendar">日曆模式（個別設定每日時間）</option>
+                    </select>
+                    <div class="small muted">選擇如何設定每日可用的學習時間</div>
+                </div>
+                
+                <div id="simple-mode-settings">
+                    <div class="form-group">
+                        <label for="daily-capacity">每日可完成題數：</label>
+                        <input type="number" id="daily-capacity" min="10" max="500" value="50" />
+                        <div class="small muted">建議根據你的時間和專注力設定（例如：50-100題）</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="excluded-dates-input">排除日期（不做考卷的日期）：</label>
+                        <div style="display:flex;gap:8px;margin-bottom:8px">
+                            <input type="date" id="excluded-date-picker" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)" />
+                            <button id="add-excluded-date" class="icon-btn" style="padding:8px 16px">新增</button>
+                        </div>
+                        <div id="excluded-dates-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+                        <div class="small muted">點擊新增按鈕來排除特定日期（例如：假日、考試日）</div>
+                    </div>
+                </div>
+                
+                <div id="calendar-mode-settings" style="display:none">
+                    <div class="form-group">
+                        <label>日曆容量設定：</label>
+                        <div class="small muted" style="margin-bottom:12px">在日曆上點擊日期來設定該日的可完成題數（未設定的日期將不排程）</div>
+                        <div id="calendar-container" style="background:var(--secondary-color);padding:16px;border-radius:8px;max-height:400px;overflow-y:auto"></div>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -2114,7 +2251,10 @@
                 dailyCapacity: 50,
                 priorityMode: 'due-date',
                 bufferDays: 2,
-                onboardingComplete: false
+                onboardingComplete: false,
+                capacityMode: 'simple', // 'simple' or 'calendar'
+                excludedDates: [], // Array of dates to exclude (YYYY-MM-DD format)
+                calendarCapacity: {} // Object with date as key and capacity as value
             },
             schedule: []
         };
@@ -2143,7 +2283,7 @@
 
         // Smart scheduling algorithm
         function generateSchedule() {
-            const { dailyCapacity, priorityMode, bufferDays } = scheduler.settings;
+            const { dailyCapacity, priorityMode, bufferDays, capacityMode, excludedDates, calendarCapacity } = scheduler.settings;
             
             // Filter incomplete exams
             const incomplete = exams.filter(e => !e.completed);
@@ -2192,14 +2332,35 @@
             while (examQueue.length > 0) {
                 const currentDay = new Date(today);
                 currentDay.setDate(currentDay.getDate() + dayOffset);
+                const dateStr = currentDay.toISOString().split('T')[0];
+                
+                // Check if date is excluded
+                const isExcluded = excludedDates && excludedDates.includes(dateStr);
+                
+                // Get capacity for this day
+                let remainingCapacity = 0;
+                if (!isExcluded) {
+                    if (capacityMode === 'calendar') {
+                        // Use calendar capacity
+                        remainingCapacity = (calendarCapacity && calendarCapacity[dateStr]) || 0;
+                    } else {
+                        // Use daily capacity
+                        remainingCapacity = dailyCapacity;
+                    }
+                }
+                
+                // Skip this day if no capacity or excluded
+                if (remainingCapacity <= 0) {
+                    dayOffset++;
+                    if (dayOffset > 90) break; // Safety limit
+                    continue;
+                }
                 
                 const daySchedule = {
-                    date: currentDay.toISOString().split('T')[0],
+                    date: dateStr,
                     items: [],
                     totalQuestions: 0
                 };
-
-                let remainingCapacity = dailyCapacity;
                 
                 while (remainingCapacity > 0 && examQueue.length > 0) {
                     const exam = examQueue[0];
@@ -2370,11 +2531,15 @@
             const dailyCapacity = parseInt(document.getElementById('daily-capacity').value) || 50;
             const priorityMode = document.getElementById('priority-mode').value;
             const bufferDays = parseInt(document.getElementById('buffer-days').value) || 2;
+            const capacityMode = document.getElementById('capacity-mode').value;
             
             scheduler.settings = {
                 dailyCapacity,
                 priorityMode,
                 bufferDays,
+                capacityMode,
+                excludedDates: scheduler.settings.excludedDates || [],
+                calendarCapacity: scheduler.settings.calendarCapacity || {},
                 onboardingComplete: true
             };
             
@@ -2389,8 +2554,191 @@
             document.getElementById('daily-capacity').value = scheduler.settings.dailyCapacity;
             document.getElementById('priority-mode').value = scheduler.settings.priorityMode;
             document.getElementById('buffer-days').value = scheduler.settings.bufferDays;
+            document.getElementById('capacity-mode').value = scheduler.settings.capacityMode || 'simple';
+            
+            // Trigger capacity mode change to show correct UI
+            handleCapacityModeChange();
+            
+            // Render excluded dates
+            renderExcludedDates();
+            
+            // Render calendar if in calendar mode
+            if (scheduler.settings.capacityMode === 'calendar') {
+                renderCalendarCapacity();
+            }
+            
             showOnboarding();
         }
+        
+        // Handle capacity mode toggle
+        function handleCapacityModeChange() {
+            const mode = document.getElementById('capacity-mode').value;
+            const simpleSettings = document.getElementById('simple-mode-settings');
+            const calendarSettings = document.getElementById('calendar-mode-settings');
+            
+            if (mode === 'simple') {
+                simpleSettings.style.display = 'block';
+                calendarSettings.style.display = 'none';
+            } else {
+                simpleSettings.style.display = 'none';
+                calendarSettings.style.display = 'block';
+                renderCalendarCapacity();
+            }
+        }
+        
+        // Render excluded dates tags
+        function renderExcludedDates() {
+            const container = document.getElementById('excluded-dates-list');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            if (!scheduler.settings.excludedDates || scheduler.settings.excludedDates.length === 0) {
+                container.innerHTML = '<div class="small muted">尚未排除任何日期</div>';
+                return;
+            }
+            
+            scheduler.settings.excludedDates.forEach(date => {
+                const tag = document.createElement('div');
+                tag.className = 'excluded-date-tag';
+                tag.innerHTML = `
+                    <span>${date}</span>
+                    <button class="remove-btn" onclick="removeExcludedDate('${date}')">×</button>
+                `;
+                container.appendChild(tag);
+            });
+        }
+        
+        // Add excluded date
+        window.addExcludedDate = function() {
+            const picker = document.getElementById('excluded-date-picker');
+            const date = picker.value;
+            
+            if (!date) {
+                alert('請選擇要排除的日期');
+                return;
+            }
+            
+            if (!scheduler.settings.excludedDates) {
+                scheduler.settings.excludedDates = [];
+            }
+            
+            if (scheduler.settings.excludedDates.includes(date)) {
+                alert('此日期已經被排除');
+                return;
+            }
+            
+            scheduler.settings.excludedDates.push(date);
+            scheduler.settings.excludedDates.sort();
+            renderExcludedDates();
+            picker.value = '';
+        };
+        
+        // Remove excluded date
+        window.removeExcludedDate = function(date) {
+            if (!scheduler.settings.excludedDates) return;
+            scheduler.settings.excludedDates = scheduler.settings.excludedDates.filter(d => d !== date);
+            renderExcludedDates();
+        };
+        
+        // Calendar capacity state
+        let currentCalendarMonth = new Date();
+        
+        // Render calendar for capacity setting
+        function renderCalendarCapacity() {
+            const container = document.getElementById('calendar-container');
+            if (!container) return;
+            
+            const year = currentCalendarMonth.getFullYear();
+            const month = currentCalendarMonth.getMonth();
+            
+            const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+            
+            let html = `
+                <div class="calendar-month-header">
+                    <button class="calendar-nav-btn" onclick="prevCalendarMonth()">◀ 上個月</button>
+                    <div class="calendar-month-title">${year} 年 ${monthNames[month]}</div>
+                    <button class="calendar-nav-btn" onclick="nextCalendarMonth()">下個月 ▶</button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="calendar-day-header">日</div>
+                    <div class="calendar-day-header">一</div>
+                    <div class="calendar-day-header">二</div>
+                    <div class="calendar-day-header">三</div>
+                    <div class="calendar-day-header">四</div>
+                    <div class="calendar-day-header">五</div>
+                    <div class="calendar-day-header">六</div>
+            `;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Add empty cells for days before month starts
+            for (let i = 0; i < firstDay; i++) {
+                html += '<div class="calendar-day disabled"></div>';
+            }
+            
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                date.setHours(0, 0, 0, 0);
+                const dateStr = formatDate(date);
+                const isPast = date < today;
+                const capacity = scheduler.settings.calendarCapacity[dateStr] || 0;
+                
+                const hasCapacityClass = capacity > 0 ? 'has-capacity' : '';
+                const disabledClass = isPast ? 'disabled' : '';
+                
+                html += `
+                    <div class="calendar-day ${hasCapacityClass} ${disabledClass}" 
+                         onclick="${isPast ? '' : `setDayCapacity('${dateStr}')`}">
+                        <div class="calendar-day-number">${day}</div>
+                        ${capacity > 0 ? `<div class="calendar-day-capacity">${capacity} 題</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        // Navigate calendar months
+        window.prevCalendarMonth = function() {
+            currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() - 1);
+            renderCalendarCapacity();
+        };
+        
+        window.nextCalendarMonth = function() {
+            currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + 1);
+            renderCalendarCapacity();
+        };
+        
+        // Set capacity for a specific day
+        window.setDayCapacity = function(dateStr) {
+            const currentCapacity = scheduler.settings.calendarCapacity[dateStr] || 0;
+            const newCapacity = prompt(`設定 ${dateStr} 的可完成題數：`, currentCapacity);
+            
+            if (newCapacity === null) return; // User cancelled
+            
+            const capacity = parseInt(newCapacity);
+            if (isNaN(capacity) || capacity < 0) {
+                alert('請輸入有效的題數（0 或以上）');
+                return;
+            }
+            
+            if (!scheduler.settings.calendarCapacity) {
+                scheduler.settings.calendarCapacity = {};
+            }
+            
+            if (capacity === 0) {
+                delete scheduler.settings.calendarCapacity[dateStr];
+            } else {
+                scheduler.settings.calendarCapacity[dateStr] = capacity;
+            }
+            
+            renderCalendarCapacity();
+        };
 
         // Event listeners for scheduler
         const showSchedulerBtn = document.getElementById('show-scheduler');
@@ -2437,6 +2785,18 @@
             skipOnboardingBtn.addEventListener('click', () => {
                 hideOnboarding();
             });
+        }
+        
+        // Add event listeners for capacity mode and excluded dates
+        const capacityModeSelect = document.getElementById('capacity-mode');
+        const addExcludedDateBtn = document.getElementById('add-excluded-date');
+        
+        if (capacityModeSelect) {
+            capacityModeSelect.addEventListener('change', handleCapacityModeChange);
+        }
+        
+        if (addExcludedDateBtn) {
+            addExcludedDateBtn.addEventListener('click', window.addExcludedDate);
         }
 
         // Initialize scheduler
