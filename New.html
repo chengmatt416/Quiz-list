@@ -525,6 +525,7 @@
             
             <div id="schedule-view">
                 <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+                    <button id="apply-schedule" class="icon-btn" style="background:#27ae60">✓ 套用排程到原始計畫</button>
                     <button id="regenerate-schedule" class="icon-btn">重新生成排程</button>
                     <button id="schedule-settings" class="icon-btn theme-toggle">排程設定</button>
                     <button id="hide-schedule" class="icon-btn theme-toggle">隱藏排程</button>
@@ -1572,6 +1573,45 @@
             });
             const performanceRate = totalReviews > 0 ? Math.round((goodReviews / totalReviews) * 100) : 0;
             
+            // Calculate smart scheduler statistics
+            let schedulerHtml = '';
+            if (scheduler.schedule && scheduler.schedule.length > 0) {
+                const totalScheduledDays = scheduler.schedule.length;
+                const totalScheduledExams = scheduler.schedule.reduce((sum, day) => sum + day.items.length, 0);
+                const totalScheduledQuestions = scheduler.schedule.reduce((sum, day) => sum + day.totalQuestions, 0);
+                const avgQuestionsPerDay = totalScheduledDays > 0 ? Math.round(totalScheduledQuestions / totalScheduledDays) : 0;
+                
+                // Calculate workload distribution
+                const workloadByDay = scheduler.schedule.map(day => day.totalQuestions);
+                const maxWorkload = Math.max(...workloadByDay);
+                const minWorkload = Math.min(...workloadByDay);
+                
+                // Get next 7 days schedule preview
+                const next7Days = scheduler.schedule.slice(0, 7);
+                
+                schedulerHtml = `
+                    <div style="font-size:14px;margin-bottom:25px;line-height:1.8;color:#333;border:2px solid #27ae60;border-radius:8px;padding:15px;background:#f0f9f4;">
+                        <div style="font-weight:bold;font-size:16px;margin-bottom:10px;color:#2c3e50;">🤖 智慧排程分析</div>
+                        <div>排程模式: <strong>${scheduler.settings.priorityMode === 'due-date' ? '依到期日優先' : scheduler.settings.priorityMode === 'balanced' ? '平衡分配' : '科目輪替'}</strong></div>
+                        <div>排程總天數: <strong>${totalScheduledDays}</strong> 天 | 排程考卷數: <strong>${totalScheduledExams}</strong> 個</div>
+                        <div>排程總題數: <strong>${totalScheduledQuestions}</strong> 題</div>
+                        <div>平均每日題數: <strong>${avgQuestionsPerDay}</strong> 題 (最高: ${maxWorkload} 題, 最低: ${minWorkload} 題)</div>
+                        ${scheduler.settings.capacityMode === 'calendar' ? '<div>容量設定: <strong>日曆模式</strong> (個別設定每日)</div>' : `<div>每日容量: <strong>${scheduler.settings.dailyCapacity}</strong> 題</div>`}
+                    </div>
+                    <div style="font-size:14px;margin-bottom:20px;line-height:1.8;color:#333;">
+                        <div style="font-weight:bold;font-size:16px;margin-bottom:10px;color:#2c3e50;">📅 未來七天排程預覽</div>
+                        ${next7Days.length > 0 ? next7Days.map((day, idx) => {
+                            const date = new Date(day.date);
+                            const weekday = ['日', '一', '二', '三', '四', '五', '六'][date.getDay()];
+                            return `<div style="margin-bottom:8px;padding:8px;background:#f8f9fa;border-radius:4px;border-left:3px solid #3498db;">
+                                <strong>第 ${idx + 1} 天 (週${weekday}) ${day.date}</strong>: ${day.totalQuestions} 題, ${day.items.length} 個考卷
+                                <div style="font-size:12px;color:#666;margin-top:4px;">${day.items.map(item => `${item.subject}-${item.chapter} (${item.questions}題)`).join(', ')}</div>
+                            </div>`;
+                        }).join('') : '<div style="color:#999;">目前沒有排程</div>'}
+                    </div>
+                `;
+            }
+            
             // Build enhanced HTML content
             let html = `
                 <div style="text-align:center;font-size:24px;font-weight:bold;margin-bottom:20px;color:#2c3e50;">
@@ -1584,6 +1624,7 @@
                     <div>今日到期: <strong style="color:#f39c12">${dueToday}</strong> | 已過期: <strong style="color:#e74c3c">${overdue}</strong> | 七天內: <strong style="color:#27ae60">${upcoming}</strong></div>
                     ${totalReviews > 0 ? `<div>總複習次數: ${totalReviews} | 表現良好率: <strong style="color:#27ae60">${performanceRate}%</strong></div>` : ''}
                 </div>
+                ${schedulerHtml}
                 <div style="font-size:14px;margin-bottom:20px;line-height:1.8;color:#333;">
                     <div style="font-weight:bold;font-size:16px;margin-bottom:10px;color:#2c3e50;">📈 等級分布</div>
                     ${Object.keys(levelDist).sort((a, b) => Number(b) - Number(a)).map(level => 
@@ -2491,16 +2532,36 @@
                                 // Item was moved to a different day
                                 const newDate = scheduler.schedule[newDayIndex].date;
                                 
-                                // Update the exam's due date
+                                // Find the item in the old day and move it to the new day
+                                const oldDay = scheduler.schedule[oldDayIndex];
+                                const itemIndex = oldDay.items.findIndex(item => item.id === examId);
+                                
+                                if (itemIndex !== -1) {
+                                    const movedItem = oldDay.items.splice(itemIndex, 1)[0];
+                                    oldDay.totalQuestions -= movedItem.questions;
+                                    
+                                    // Add to new day
+                                    const newDay = scheduler.schedule[newDayIndex];
+                                    newDay.items.push(movedItem);
+                                    newDay.totalQuestions += movedItem.questions;
+                                    
+                                    // Update due date in moved item
+                                    movedItem.dueDate = newDate;
+                                }
+                                
+                                // Update the exam's due date in main exams array
                                 const exam = exams.find(e => e.id === examId);
                                 if (exam) {
                                     exam.dueDate = newDate;
                                     saveExams();
                                     render();
-                                    
-                                    // Regenerate schedule to reflect the change
-                                    generateSchedule();
                                 }
+                                
+                                // Save updated schedule
+                                saveSchedule();
+                                
+                                // Re-render schedule to show updated totals
+                                renderSchedule();
                             }
                         }
                     });
@@ -2519,6 +2580,39 @@
         function hideScheduler() {
             const panel = document.getElementById('scheduler-panel');
             if (panel) panel.style.display = 'none';
+        }
+        
+        // Apply smart scheduler plan to original exam due dates
+        function applyScheduleToExams() {
+            if (!scheduler.schedule || scheduler.schedule.length === 0) {
+                alert('目前沒有排程可以套用');
+                return;
+            }
+            
+            if (!confirm('確定要將智慧排程套用到原始計畫嗎？這會更新所有考卷的到期日。')) {
+                return;
+            }
+            
+            let updatedCount = 0;
+            
+            // Apply scheduled dates to exams
+            scheduler.schedule.forEach(day => {
+                day.items.forEach(item => {
+                    const exam = exams.find(e => e.id === item.id);
+                    if (exam) {
+                        exam.dueDate = day.date;
+                        updatedCount++;
+                    }
+                });
+            });
+            
+            if (updatedCount > 0) {
+                saveExams();
+                render();
+                alert(`✅ 成功套用排程！已更新 ${updatedCount} 個考卷的到期日。`);
+            } else {
+                alert('沒有考卷被更新');
+            }
         }
 
         function showOnboarding() {
@@ -2746,6 +2840,7 @@
 
         // Event listeners for scheduler
         const showSchedulerBtn = document.getElementById('show-scheduler');
+        const applyScheduleBtn = document.getElementById('apply-schedule');
         const regenerateScheduleBtn = document.getElementById('regenerate-schedule');
         const scheduleSettingsBtn = document.getElementById('schedule-settings');
         const hideScheduleBtn = document.getElementById('hide-schedule');
@@ -2763,6 +2858,10 @@
                     showScheduler();
                 }
             });
+        }
+        
+        if (applyScheduleBtn) {
+            applyScheduleBtn.addEventListener('click', applyScheduleToExams);
         }
 
         if (regenerateScheduleBtn) {
