@@ -1517,6 +1517,9 @@
         }
 
         async function exportSRSReport() {
+            // Constants
+            const CHART_RENDER_DELAY = 500; // ms - time to wait for charts to fully render
+            
             // Check if jsPDF and Chart.js are available
             if (!window.jspdf && !window.jsPDF) {
                 alert('PDF 匯出功能載入中，請稍後再試');
@@ -1575,7 +1578,8 @@
                 if (e.srsPerformance && Array.isArray(e.srsPerformance)) {
                     totalReviews += e.srsPerformance.length;
                     goodReviews += e.srsPerformance.filter(p => p.result === 'good').length;
-                    badReviews += e.srsPerformance.filter(p => p.result === 'bad').length;
+                    // Bad reviews are any that aren't good (could be 'bad', 'hard', etc.)
+                    badReviews += e.srsPerformance.filter(p => p.result !== 'good').length;
                 }
             });
             const performanceRate = totalReviews > 0 ? Math.round((goodReviews / totalReviews) * 100) : 0;
@@ -1601,8 +1605,8 @@
             const masteryCount = srsExams.filter(e => e.srsLevel >= 5).length;
             const masteryRate = srsExams.length > 0 ? Math.round((masteryCount / srsExams.length) * 100) : 0;
             
-            // Calculate retention metrics
-            const retentionRate = performanceRate;
+            // Calculate success rate (same as performance rate for display purposes)
+            const successRate = performanceRate;
             
             // Calculate average review interval
             let totalInterval = 0;
@@ -1706,7 +1710,10 @@
                 subjectCanvas.style.cssText = 'display:inline-block;';
                 chartContainer.appendChild(subjectCanvas);
                 
-                const subjects = Object.keys(subjectStats).slice(0, 8); // Top 8 subjects
+                // Sort subjects by count and take top 8
+                const subjects = Object.keys(subjectStats)
+                    .sort((a, b) => subjectStats[b].count - subjectStats[a].count)
+                    .slice(0, 8);
                 const subjectCounts = subjects.map(s => subjectStats[s].count);
                 
                 new Chart(subjectCanvas, {
@@ -1872,7 +1879,7 @@
                         ${totalReviews > 0 ? `<div>✅ 總複習次數: <strong>${totalReviews}</strong> 次</div>` : ''}
                         ${totalReviews > 0 ? `<div>🎯 成功率: <strong style="color:${performanceRate >= 70 ? '#27ae60' : performanceRate >= 50 ? '#f39c12' : '#e74c3c'}">${performanceRate}%</strong></div>` : ''}
                         ${avgInterval > 0 ? `<div>⏱️ 平均複習間隔: <strong>${avgInterval}</strong> 天</div>` : ''}
-                        ${totalReviews > 0 ? `<div>💯 保留率: <strong style="color:#27ae60">${retentionRate}%</strong></div>` : ''}
+                        ${totalReviews > 0 ? `<div>💯 成功率: <strong style="color:#27ae60">${successRate}%</strong></div>` : ''}
                     </div>
                 </div>
                 
@@ -1970,8 +1977,8 @@
             chartsSection.appendChild(chartContainer);
             container.appendChild(chartsSection);
             
-            // Wait for charts to render
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Wait for charts to render before converting to canvas
+            await new Promise(resolve => setTimeout(resolve, CHART_RENDER_DELAY));
             
             // Render to canvas with html2canvas (supports Chinese fonts)
             try {
