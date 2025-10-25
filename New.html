@@ -1605,9 +1605,6 @@
             const masteryCount = srsExams.filter(e => e.srsLevel >= 5).length;
             const masteryRate = srsExams.length > 0 ? Math.round((masteryCount / srsExams.length) * 100) : 0;
             
-            // Calculate success rate (same as performance rate for display purposes)
-            const successRate = performanceRate;
-            
             // Calculate average review interval
             let totalInterval = 0;
             let intervalCount = 0;
@@ -1879,7 +1876,6 @@
                         ${totalReviews > 0 ? `<div>✅ 總複習次數: <strong>${totalReviews}</strong> 次</div>` : ''}
                         ${totalReviews > 0 ? `<div>🎯 成功率: <strong style="color:${performanceRate >= 70 ? '#27ae60' : performanceRate >= 50 ? '#f39c12' : '#e74c3c'}">${performanceRate}%</strong></div>` : ''}
                         ${avgInterval > 0 ? `<div>⏱️ 平均複習間隔: <strong>${avgInterval}</strong> 天</div>` : ''}
-                        ${totalReviews > 0 ? `<div>💯 成功率: <strong style="color:#27ae60">${successRate}%</strong></div>` : ''}
                     </div>
                 </div>
                 
