@@ -1,41 +1,41 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>考卷清單與訂正進度（含到期日、匯出日曆、番茄鐘）</title>
-    
+
     <!-- PWA Meta Tags -->
-    <meta name="description" content="一個功能完整的考卷清單管理系統，具備到期日追蹤、日曆匯出及番茄鐘計時功能" />
-    <meta name="theme-color" content="#3498db" />
-    
+    <meta name="description" content="一個功能完整的考卷清單管理系統，具備到期日追蹤、日曆匯出及番茄鐘計時功能">
+    <meta name="theme-color" content="#3498db">
+
     <!-- Web App Manifest -->
-    <link rel="manifest" href="/manifest.json" />
-    
+    <link rel="manifest" href="/manifest.json">
+
     <!-- iOS Specific Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="考卷清單" />
-    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="考卷清單">
+
     <!-- iOS Icons -->
-    <link rel="apple-touch-icon" href="/icon-152x152.png" />
-    <link rel="apple-touch-icon" sizes="72x72" href="/icon-72x72.png" />
-    <link rel="apple-touch-icon" sizes="96x96" href="/icon-96x96.png" />
-    <link rel="apple-touch-icon" sizes="128x128" href="/icon-128x128.png" />
-    <link rel="apple-touch-icon" sizes="144x144" href="/icon-144x144.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png" />
-    <link rel="apple-touch-icon" sizes="384x384" href="/icon-384x384.png" />
-    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512x512.png" />
-    
+    <link rel="apple-touch-icon" href="/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="96x96" href="/icon-96x96.png">
+    <link rel="apple-touch-icon" sizes="128x128" href="/icon-128x128.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="384x384" href="/icon-384x384.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512x512.png">
+
     <!-- Standard Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/icon-96x96.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/icon-72x72.png" />
-    
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icon-72x72.png">
+
     <!-- Microsoft Tiles -->
-    <meta name="msapplication-TileColor" content="#3498db" />
-    <meta name="msapplication-TileImage" content="/icon-144x144.png" />
-    
+    <meta name="msapplication-TileColor" content="#3498db">
+    <meta name="msapplication-TileImage" content="/icon-144x144.png">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -181,11 +181,11 @@
         .due-date{font-size:13px;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,0.03); color:var(--muted); margin-left:8px}
         .due-date.overdue{background:linear-gradient(90deg,#f9e0e0,#fde6e6); color:var(--accent-color); font-weight:700}
         .exam-actions{display:flex;gap:8px;align-items:center;margin-left:12px}
-        
+
         .exam-actions .icon-btn {
             padding: 4px 8px;
             font-size: 12px;
-            color: white; 
+            color: white;
         }
 
         .exam-item:hover{transform:translateY(-4px) scale(1.005); box-shadow:0 10px 30px rgba(0,0,0,0.06)}
@@ -198,7 +198,7 @@
         .add-exam-form input[type="number"]{ flex: 1 1 80px; }
         .add-exam-form button { flex: 1 1 80px; }
         .add-exam-form .submit{background:#27ae60;color:white;border:none}
-        
+
         .small{font-size:13px;color:var(--muted)}
         .muted{color:var(--muted)}
 
@@ -305,8 +305,8 @@
         }
 
         @media (max-width:720px){
-            body { 
-                padding: 10px; 
+            body {
+                padding: 10px;
                 padding-bottom: 160px;
             }
             .container { padding: 15px; }
@@ -316,7 +316,7 @@
             .pomodoro-panel{right:8px;left:8px;bottom:12px;width:auto}
             .modal-content{width:95%; padding:20px}
         }
-        
+
         /* Excluded dates tags */
         .excluded-date-tag {
             display: inline-flex;
@@ -343,7 +343,7 @@
             margin: 0;
             line-height: 1;
         }
-        
+
         /* Calendar capacity grid */
         .calendar-grid {
             display: grid;
@@ -424,14 +424,14 @@
         .calendar-nav-btn:hover {
             opacity: 0.8;
         }
-        
+
         /* PWA Mode adjustments */
         body.pwa-mode {
             /* Add extra padding for iOS safe areas */
             padding-top: env(safe-area-inset-top, 20px);
             padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 160px);
         }
-        
+
         @supports (padding: max(0px)) {
             body.pwa-mode {
                 padding-left: max(20px, env(safe-area-inset-left));
@@ -449,27 +449,27 @@
                     <div class="small muted">到期日、匯出日曆 (.ics)、番茄鐘 — 已保留你的預設清單</div>
                 </div>
                 <div class="top-actions">
-                    <button id="show-scheduler" class="icon-btn">智慧排程 🤖</button>
-                    <button id="show-pomodoro" class="icon-btn">顯示番茄鐘</button>
-                    <button id="pom-fullscreen-toggle" class="icon-btn">番茄鐘全螢幕</button>
-                    <button id="export-srs-report" class="icon-btn">匯出 SRS 報告</button>
-                    <button id="export-all-ics" class="icon-btn">匯出全部到日曆</button>
-                    <button id="export-json" class="icon-btn">匯出 JSON</button>
-                    <button id="export-pdf" class="icon-btn">匯出 PDF</button>
+                    <button type="button" id="show-scheduler" class="icon-btn">智慧排程 🤖</button>
+                    <button type="button" id="show-pomodoro" class="icon-btn">顯示番茄鐘</button>
+                    <button type="button" id="pom-fullscreen-toggle" class="icon-btn">番茄鐘全螢幕</button>
+                    <button type="button" id="export-srs-report" class="icon-btn">匯出 SRS 報告</button>
+                    <button type="button" id="export-all-ics" class="icon-btn">匯出全部到日曆</button>
+                    <button type="button" id="export-json" class="icon-btn">匯出 JSON</button>
+                    <button type="button" id="export-pdf" class="icon-btn">匯出 PDF</button>
                     <label for="import-json-file" class="icon-btn" style="cursor:pointer;padding:6px 10px">匯入 JSON</label>
-                    <input type="file" id="import-json-file" accept="application/json" style="display:none" />
-                    <button id="clear-storage" class="theme-toggle">清除本機資料</button>
-                    <button id="theme-toggle" class="theme-toggle">切換深色</button>
+                    <input type="file" id="import-json-file" accept="application/json" style="display:none">
+                    <button type="button" id="clear-storage" class="theme-toggle">清除本機資料</button>
+                    <button type="button" id="theme-toggle" class="theme-toggle">切換深色</button>
                 </div>
             </div>
 
             <div class="toolbar">
-                <input id="search-box" placeholder="搜尋科目或章節..." />
+                <input type="search" id="search-box" placeholder="搜尋科目或章節...">
                 <div class="sort-controls">
-                    <button id="sort-by-questions">按題數排序</button>
-                    <button id="sort-by-chapter">按章節排序</button>
-                    <button id="sort-by-due">依到期日排序</button>
-                    <button id="toggle-card-view" class="theme-toggle">切換卡片檢視</button>
+                    <button type="button" id="sort-by-questions">按題數排序</button>
+                    <button type="button" id="sort-by-chapter">按章節排序</button>
+                    <button type="button" id="sort-by-due">依到期日排序</button>
+                    <button type="button" id="toggle-card-view" class="theme-toggle">切換卡片檢視</button>
                 </div>
                 <div style="display:flex;gap:6px;align-items:center;margin-left:12px">
                     <select id="filter-select" class="small" title="篩選">
@@ -509,12 +509,12 @@
             <div id="exam-list-container"></div>
 
             <div class="add-exam-form">
-                <input type="text" id="new-subject" placeholder="科目" required />
-                <input type="text" id="new-chapter" placeholder="章節" required />
-                <input type="number" id="new-questions" placeholder="題數（選填）" min="0" />
-                <input type="date" id="new-due" />
-                <button id="clear-due-btn" class="icon-btn small" style="background:#95a5a6">清除日期</button>
-                <button id="add-btn" class="submit">新增</button>
+                <input type="text" id="new-subject" placeholder="科目" required>
+                <input type="text" id="new-chapter" placeholder="章節" required>
+                <input type="number" id="new-questions" placeholder="題數（選填）" min="0">
+                <input type="date" id="new-due">
+                <button type="button" id="clear-due-btn" class="icon-btn small" style="background:#95a5a6">清除日期</button>
+                <button type="button" id="add-btn" class="submit">新增</button>
                 <div style="margin-left:auto" class="small muted">題數與到期日為選填，匯出日曆時會使用到期日</div>
             </div>
         </div>
@@ -523,13 +523,13 @@
         <div id="scheduler-panel" class="container" style="margin-top:20px;display:none">
             <h2>智慧排程系統 🤖</h2>
             <div class="small muted" style="margin-bottom:16px">根據你的學習能力自動規劃每日考卷進度</div>
-            
+
             <div id="schedule-view">
                 <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-                    <button id="apply-schedule" class="icon-btn" style="background:#27ae60" aria-label="Apply schedule to original plan">✓ 套用排程到原始計畫</button>
-                    <button id="regenerate-schedule" class="icon-btn">重新生成排程</button>
-                    <button id="schedule-settings" class="icon-btn theme-toggle">排程設定</button>
-                    <button id="hide-schedule" class="icon-btn theme-toggle">隱藏排程</button>
+                    <button type="button" id="apply-schedule" class="icon-btn" style="background:#27ae60" aria-label="Apply schedule to original plan">✓ 套用排程到原始計畫</button>
+                    <button type="button" id="regenerate-schedule" class="icon-btn">重新生成排程</button>
+                    <button type="button" id="schedule-settings" class="icon-btn theme-toggle">排程設定</button>
+                    <button type="button" id="hide-schedule" class="icon-btn theme-toggle">隱藏排程</button>
                 </div>
                 <div id="schedule-container"></div>
             </div>
@@ -540,7 +540,7 @@
             <div class="modal-content">
                 <h2>歡迎使用智慧排程系統！👋</h2>
                 <p class="small muted">讓我們了解你的學習習慣，為你自動規劃考卷進度</p>
-                
+
                 <div class="form-group">
                     <label for="capacity-mode">容量設定模式：</label>
                     <select id="capacity-mode">
@@ -549,25 +549,25 @@
                     </select>
                     <div class="small muted">選擇如何設定每日可用的學習時間</div>
                 </div>
-                
+
                 <div id="simple-mode-settings">
                     <div class="form-group">
                         <label for="daily-capacity">每日可完成題數：</label>
-                        <input type="number" id="daily-capacity" min="10" max="500" value="50" />
+                        <input type="number" id="daily-capacity" min="10" max="500" value="50">
                         <div class="small muted">建議根據你的時間和專注力設定（例如：50-100題）</div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="excluded-dates-input">排除日期（不做考卷的日期）：</label>
                         <div style="display:flex;gap:8px;margin-bottom:8px">
-                            <input type="date" id="excluded-date-picker" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)" />
-                            <button id="add-excluded-date" class="icon-btn" style="padding:8px 16px">新增</button>
+                            <input type="date" id="excluded-date-picker" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)">
+                            <button type="button" id="add-excluded-date" class="icon-btn" style="padding:8px 16px">新增</button>
                         </div>
                         <div id="excluded-dates-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
                         <div class="small muted">點擊新增按鈕來排除特定日期（例如：假日、考試日）</div>
                     </div>
                 </div>
-                
+
                 <div id="calendar-mode-settings" style="display:none">
                     <div class="form-group">
                         <label>日曆容量設定：</label>
@@ -575,7 +575,7 @@
                         <div id="calendar-container" style="background:var(--secondary-color);padding:16px;border-radius:8px;max-height:400px;overflow-y:auto"></div>
                     </div>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="priority-mode">優先級模式：</label>
                     <select id="priority-mode">
@@ -584,16 +584,16 @@
                         <option value="subject-rotation">科目輪替</option>
                     </select>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="buffer-days">提前完成緩衝天數：</label>
-                    <input type="number" id="buffer-days" min="0" max="14" value="2" />
+                    <input type="number" id="buffer-days" min="0" max="14" value="2">
                     <div class="small muted">在到期日前幾天完成（預留訂正時間）</div>
                 </div>
-                
+
                 <div style="display:flex;gap:12px;margin-top:20px">
-                    <button id="save-settings" class="icon-btn">開始使用</button>
-                    <button id="skip-onboarding" class="theme-toggle">稍後設定</button>
+                    <button type="button" id="save-settings" class="icon-btn">開始使用</button>
+                    <button type="button" id="skip-onboarding" class="theme-toggle">稍後設定</button>
                 </div>
             </div>
         </div>
@@ -614,14 +614,14 @@
                     <option value="short">短休</option>
                     <option value="long">長休</option>
                 </select>
-                <button id="pom-close" class="pom-close-btn" title="隱藏">&times;</button>
-                <button id="pom-start">開始</button>
+                <button type="button" id="pom-close" class="pom-close-btn" title="隱藏">&times;</button>
+                <button type="button" id="pom-start">開始</button>
             </div>
         </div>
         <div class="timer-display" id="timer-display">25:00</div>
         <div class="pom-controls">
-            <button id="pom-pause" class="theme-toggle">暫停</button>
-            <button id="pom-reset" class="theme-toggle">重設</button>
+            <button type="button" id="pom-pause" class="theme-toggle">暫停</button>
+            <button type="button" id="pom-reset" class="theme-toggle">重設</button>
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;justify-content:center">
             <div class="small muted">週期</div>
@@ -629,7 +629,7 @@
         </div>
         <div style="margin-top:10px;display:flex;justify-content:center;gap:8px;align-items:center">
             <label class="small muted" style="display:flex;align-items:center;gap:6px">
-                <input type="checkbox" id="pom-enable-sound" /> 啟用音效
+                <input type="checkbox" id="pom-enable-sound"> 啟用音效
             </label>
         </div>
     </div>
@@ -641,7 +641,7 @@
             window.currentSRSPlan[index].newDate = newDate;
         }
     };
-    
+
     window.closeSRSPlanModal = function() {
         const modal = document.getElementById('srs-plan-modal');
         if (modal) {
@@ -649,7 +649,7 @@
         }
         window.currentSRSPlan = null;
     };
-    
+
     window.applyAndCloseSRSPlan = function() {
         if (window.currentSRSPlan && window.currentSRSPlan.length > 0) {
             // Call the local applySRSPlan function through a stored reference
@@ -660,19 +660,19 @@
         }
         window.closeSRSPlanModal();
     };
-    
+
     window.updateExpPlanChange = function(index, newDate) {
         if (window.currentExpPlan && window.currentExpPlan[index]) {
             window.currentExpPlan[index].newDate = newDate;
         }
     };
-    
+
     window.closeExpPlanModal = function() {
         const modal = document.getElementById('exp-plan-modal');
         if (modal) modal.remove();
         window.currentExpPlan = null;
     };
-    
+
     window.applyAndCloseExpPlan = function() {
         if (window.currentExpPlan && window.currentExpPlan.length > 0) {
             // Call through the apply function that will be set up later
@@ -683,12 +683,12 @@
         }
         window.closeExpPlanModal();
     };
-    
+
     window.closeExpMenu = function() {
         const modal = document.getElementById('exp-menu-modal');
         if (modal) modal.remove();
     };
-    
+
     document.addEventListener('DOMContentLoaded', () => {
 
         // Initial data (can be customized)
@@ -749,14 +749,14 @@
         function loadExams(){
             const s = localStorage.getItem('examsList');
             if(s){
-                exams = JSON.parse(s).map(e => ({ 
-                    corrected:false, 
-                    dueDate:null, 
-                    srsLevel:0, 
-                    srsLastReview:null, 
+                exams = JSON.parse(s).map(e => ({
+                    corrected:false,
+                    dueDate:null,
+                    srsLevel:0,
+                    srsLastReview:null,
                     srsNextReview:null,
                     srsPerformance: [],
-                    ...e 
+                    ...e
                 }));
             } else {
                 exams = initialData.slice();
@@ -832,22 +832,22 @@
                         const label = overdue ? `已過期 ${Math.abs(diffDays)} 天` : (diffDays === 0 ? '到期：今天' : `到期：${diffDays} 天後`);
                         dueHtml = `<span class="due-date ${overdue ? 'overdue': ''}" title="${formatDate(due)}">${label}</span>`;
                     }
-                    
+
                     // SRS level display
                     let srsHtml = '';
                     if(exam.srsLevel && exam.srsLevel > 0){
                         srsHtml = `<span class="pill small" style="margin-left:8px;background:#e8f5e9;color:#2e7d32">SRS ${exam.srsLevel}</span>`;
                     }
-                    
+
                     // SRS buttons - show for all tasks
                     let srsButtons = `
                         <button class="icon-btn srs-advance-btn small" data-id="${exam.id}" style="background:#27ae60" title="複習成功，提升等級">SRS+</button>
                         <button class="icon-btn srs-decrease-btn small" data-id="${exam.id}" style="background:#e67e22" title="複習困難，降低等級">SRS-</button>
                     `;
-                    
+
                     li.innerHTML = `
                         <div class="left">
-                            <input type="checkbox" class="completion-checkbox" data-id="${exam.id}" ${exam.completed ? 'checked' : ''} />
+                            <input type="checkbox" class="completion-checkbox" data-id="${exam.id}" ${exam.completed ? 'checked' : ''}>
                             <div class="exam-info">
                                 <div>
                                     <span class="chapter">${escapeHtml(exam.chapter)}</span>
@@ -858,7 +858,7 @@
                             </div>
                         </div>
                         <div class="exam-actions">
-                            <label class="correction-control"><input type="checkbox" class="correction-checkbox" data-id="${exam.id}" ${exam.corrected ? 'checked' : ''} /> 訂正</label>
+                            <label class="correction-control"><input type="checkbox" class="correction-checkbox" data-id="${exam.id}" ${exam.corrected ? 'checked' : ''}> 訂正</label>
                             ${srsButtons}
                             <button class="icon-btn edit-btn small" data-id="${exam.id}">編輯</button>
                             <button class="icon-btn ics-btn small" data-id="${exam.id}">匯出日曆</button>
@@ -999,7 +999,7 @@
         }
 
         function pad(n){ return String(n).padStart(2,'0'); }
-        
+
         function downloadFile(filename, content, mime='text/calendar;charset=utf-8'){
             const blob = new Blob([content], { type: mime });
             const url = URL.createObjectURL(blob);
@@ -1101,12 +1101,12 @@
                 return;
             }
             const { jsPDF } = window.jspdf || window;
-            
+
             // Create a temporary container for rendering
             const container = document.createElement('div');
             container.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:white;padding:30px;font-family:Arial,sans-serif;';
             document.body.appendChild(container);
-            
+
             // Summary statistics
             let remainingTotal = 0, completedTotal = 0, totalQuestions = 0, correctedTotal = 0;
             exams.forEach(exam => {
@@ -1118,7 +1118,7 @@
                     remainingTotal += Number(exam.questions || 0);
                 }
             });
-            
+
             // Build HTML content with Chinese characters
             let html = `
                 <div style="text-align:center;font-size:24px;font-weight:bold;margin-bottom:20px;color:#2c3e50;">
@@ -1130,13 +1130,13 @@
                     <div>已訂正: ${correctedTotal}</div>
                 </div>
             `;
-            
+
             // Add exam cards
             exams.forEach((exam, idx) => {
                 const bgColor = exam.completed ? '#e6fae6' : '#fafafa';
                 const status = exam.completed ? (exam.corrected ? "已完成+已訂正" : "已完成") : "未完成";
                 const dueText = exam.dueDate ? exam.dueDate : "未設定";
-                
+
                 html += `
                     <div style="border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:12px;background:${bgColor};">
                         <div style="font-size:16px;font-weight:bold;margin-bottom:8px;color:#2c3e50;">${exam.subject}</div>
@@ -1149,9 +1149,9 @@
                     </div>
                 `;
             });
-            
+
             container.innerHTML = html;
-            
+
             // Render to canvas with html2canvas (supports Chinese fonts)
             try {
                 const canvas = await html2canvas(container, {
@@ -1159,27 +1159,27 @@
                     backgroundColor: '#ffffff',
                     logging: false
                 });
-                
+
                 // Create PDF and add the rendered image
                 const imgWidth = 210; // A4 width in mm
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 const doc = new jsPDF('p', 'mm', 'a4');
-                
+
                 // If content is too tall, split into multiple pages
                 const pageHeight = 295; // A4 height in mm
                 let heightLeft = imgHeight;
                 let position = 0;
-                
+
                 doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight;
-                
+
                 while (heightLeft > 0) {
                     position = heightLeft - imgHeight;
                     doc.addPage();
                     doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
                 }
-                
+
                 doc.save('exams.pdf');
             } catch (error) {
                 console.error('PDF generation error:', error);
@@ -1224,10 +1224,10 @@
         }
 
         // ==================== SRS (Spaced Repetition System) FUNCTIONS ====================
-        
+
         // SRS intervals in days: 1, 3, 7, 14, 30, 60, 120, 180
         const SRS_INTERVALS = [1, 3, 7, 14, 30, 60, 120, 180];
-        
+
         // Advanced SRS settings
         const SRS_ADVANCED_MODE = true; // Enable advanced features
         const SRS_PERFORMANCE_THRESHOLD = 0.7; // 70% correct rate threshold
@@ -1240,12 +1240,12 @@
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             let updatedCount = 0;
             let rescheduledCount = 0;
             let newPlansCount = 0;
             const changes = [];
-            
+
             exams.forEach(exam => {
                 // Initialize SRS data if not present
                 if (exam.srsLevel === undefined) exam.srsLevel = 0;
@@ -1259,7 +1259,7 @@
                     const nextReviewDate = new Date(today);
                     const interval = SRS_INTERVALS[Math.min(exam.srsLevel, SRS_INTERVALS.length - 1)];
                     nextReviewDate.setDate(nextReviewDate.getDate() + interval);
-                    
+
                     const newDate = formatDate(nextReviewDate);
                     changes.push({
                         id: exam.id,
@@ -1273,12 +1273,12 @@
                     });
                     newPlansCount++;
                 }
-                
+
                 // 2. Advanced: Reschedule overdue items to today
                 if (exam.srsNextReview && exam.completed) {
                     const reviewDate = new Date(exam.srsNextReview);
                     reviewDate.setHours(0, 0, 0, 0);
-                    
+
                     // If significantly overdue (>7 days), bring it back
                     const daysDiff = Math.floor((today - reviewDate) / (1000 * 60 * 60 * 24));
                     if (daysDiff > 7) {
@@ -1295,12 +1295,12 @@
                         rescheduledCount++;
                     }
                 }
-                
+
                 // 3. Experimental: Plan for uncompleted exams without due date
                 if (!exam.completed && !exam.dueDate) {
                     const planDate = new Date(today);
                     planDate.setDate(planDate.getDate() + 3); // Default 3 days from now
-                    
+
                     changes.push({
                         id: exam.id,
                         subject: exam.subject,
@@ -1314,10 +1314,10 @@
                     updatedCount++;
                 }
             });
-            
+
             return { changes, updatedCount, rescheduledCount, newPlansCount };
         }
-        
+
         // Apply SRS plan changes
         function applySRSPlan(changes) {
             changes.forEach(change => {
@@ -1332,7 +1332,7 @@
             saveExams();
             render();
         }
-        
+
         // Apply experimental plan changes
         function applyExpPlan(changes) {
             changes.forEach(change => {
@@ -1344,31 +1344,31 @@
             saveExams();
             render();
         }
-        
+
         // Store references for global functions
         window._applySRSPlan = applySRSPlan;
         window._applyExpPlan = applyExpPlan;
         window._exams = exams;
         window._saveExams = saveExams;
         window._render = render;
-        
+
         // Show SRS planning preview dialog
         function srsAutoPlan() {
             const plan = generateSRSPlan();
-            
+
             if (plan.changes.length === 0) {
                 alert('沒有需要規劃的考卷');
                 return;
             }
-            
+
             // Create modal
             const modal = document.createElement('div');
             modal.id = 'srs-plan-modal';
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.3s';
-            
+
             const content = document.createElement('div');
             content.style.cssText = 'background:var(--container-bg);padding:24px;border-radius:12px;max-width:800px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.3)';
-            
+
             let html = `
                 <h2 style="margin:0 0 16px 0;color:var(--header-color)">📋 SRS 自動規劃預覽</h2>
                 <div style="margin-bottom:20px;padding:12px;background:var(--secondary-color);border-radius:8px;">
@@ -1382,7 +1382,7 @@
                     <div style="font-weight:bold;margin-bottom:12px">📝 規劃詳情 (可編輯到期日)</div>
                     <div id="plan-items-container">
             `;
-            
+
             plan.changes.forEach((change, index) => {
                 const typeColor = change.type === 'new' ? '#27ae60' : change.type === 'reschedule' ? '#e67e22' : '#3498db';
                 html += `
@@ -1402,17 +1402,17 @@
                             <div style="color:var(--primary-color);font-weight:bold">→</div>
                             <div>
                                 <div style="color:var(--muted);font-size:11px">新到期日</div>
-                                <input type="date" 
-                                    class="srs-plan-date" 
-                                    data-change-index="${index}" 
-                                    value="${change.newDate}" 
+                                <input type="date"
+                                    class="srs-plan-date"
+                                    data-change-index="${index}"
+                                    value="${change.newDate}"
                                     style="padding:6px;border:1px solid var(--border-color);border-radius:4px;background:var(--container-bg);color:var(--text-color);width:100%" />
                             </div>
                         </div>
                     </div>
                 `;
             });
-            
+
             html += `
                     </div>
                 </div>
@@ -1421,18 +1421,18 @@
                     <button id="srs-apply-btn" style="padding:10px 20px;border:none;border-radius:8px;background:var(--primary-color);color:white;cursor:pointer;font-size:14px;font-weight:bold">套用規劃</button>
                 </div>
             `;
-            
+
             content.innerHTML = html;
             modal.appendChild(content);
             document.body.appendChild(modal);
-            
+
             // Store plan data globally for access in button handlers
             window.currentSRSPlan = plan.changes;
-            
+
             // Add event listeners
             document.getElementById('srs-cancel-btn').addEventListener('click', window.closeSRSPlanModal);
             document.getElementById('srs-apply-btn').addEventListener('click', window.applyAndCloseSRSPlan);
-            
+
             // Add listeners for date inputs
             document.querySelectorAll('.srs-plan-date').forEach(input => {
                 input.addEventListener('change', function() {
@@ -1441,7 +1441,7 @@
                 });
             });
         }
-        
+
 
         function advanceSRSLevel(examId) {
             const exam = exams.find(e => e.id === examId);
@@ -1449,32 +1449,32 @@
 
             if (exam.srsLevel === undefined) exam.srsLevel = 0;
             if (!exam.srsPerformance) exam.srsPerformance = [];
-            
+
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             exam.srsLastReview = formatDate(today);
             exam.srsLevel = Math.min(exam.srsLevel + 1, SRS_INTERVALS.length - 1);
-            
+
             // Track performance (assuming good performance when advancing)
             exam.srsPerformance.push({
                 date: formatDate(today),
                 level: exam.srsLevel,
                 result: 'good'
             });
-            
+
             // Keep only last 10 performance records
             if (exam.srsPerformance.length > 10) {
                 exam.srsPerformance = exam.srsPerformance.slice(-10);
             }
-            
+
             const nextReviewDate = new Date(today);
             const interval = SRS_INTERVALS[exam.srsLevel];
             nextReviewDate.setDate(nextReviewDate.getDate() + interval);
-            
+
             exam.srsNextReview = formatDate(nextReviewDate);
             exam.dueDate = exam.srsNextReview;
-            
+
             saveExams();
             render();
         }
@@ -1485,33 +1485,33 @@
 
             if (exam.srsLevel === undefined) exam.srsLevel = 0;
             if (!exam.srsPerformance) exam.srsPerformance = [];
-            
+
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             exam.srsLastReview = formatDate(today);
             // Decrease level but don't go below 0
             exam.srsLevel = Math.max(exam.srsLevel - 1, 0);
-            
+
             // Track performance (poor performance when decreasing)
             exam.srsPerformance.push({
                 date: formatDate(today),
                 level: exam.srsLevel,
                 result: 'poor'
             });
-            
+
             // Keep only last 10 performance records
             if (exam.srsPerformance.length > 10) {
                 exam.srsPerformance = exam.srsPerformance.slice(-10);
             }
-            
+
             const nextReviewDate = new Date(today);
             const interval = SRS_INTERVALS[exam.srsLevel];
             nextReviewDate.setDate(nextReviewDate.getDate() + interval);
-            
+
             exam.srsNextReview = formatDate(nextReviewDate);
             exam.dueDate = exam.srsNextReview;
-            
+
             saveExams();
             render();
         }
@@ -1519,7 +1519,7 @@
         async function exportSRSReport() {
             // Constants
             const CHART_RENDER_DELAY = 500; // ms - time to wait for charts to fully render
-            
+
             // Check if jsPDF and Chart.js are available
             if (!window.jspdf && !window.jsPDF) {
                 alert('PDF 匯出功能載入中，請稍後再試');
@@ -1530,15 +1530,15 @@
                 return;
             }
             const { jsPDF } = window.jspdf || window;
-            
+
             // Create a temporary container for rendering
             const container = document.createElement('div');
             container.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:white;padding:30px;font-family:Arial,sans-serif;';
             document.body.appendChild(container);
-            
+
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             // Calculate enhanced SRS statistics
             const srsExams = exams.filter(e => e.srsLevel !== undefined && e.srsLevel > 0);
             const dueToday = srsExams.filter(e => {
@@ -1547,14 +1547,14 @@
                 reviewDate.setHours(0, 0, 0, 0);
                 return reviewDate.getTime() === today.getTime();
             }).length;
-            
+
             const overdue = srsExams.filter(e => {
                 if (!e.srsNextReview) return false;
                 const reviewDate = new Date(e.srsNextReview);
                 reviewDate.setHours(0, 0, 0, 0);
                 return reviewDate < today;
             }).length;
-            
+
             const upcoming = srsExams.filter(e => {
                 if (!e.srsNextReview) return false;
                 const reviewDate = new Date(e.srsNextReview);
@@ -1562,14 +1562,14 @@
                 const diffDays = Math.ceil((reviewDate - today) / (1000 * 60 * 60 * 24));
                 return diffDays > 0 && diffDays <= 7;
             }).length;
-            
+
             // Calculate level distribution
             const levelDist = {};
             srsExams.forEach(e => {
                 const level = e.srsLevel || 0;
                 levelDist[level] = (levelDist[level] || 0) + 1;
             });
-            
+
             // Calculate performance stats
             let totalReviews = 0;
             let goodReviews = 0;
@@ -1583,7 +1583,7 @@
                 }
             });
             const performanceRate = totalReviews > 0 ? Math.round((goodReviews / totalReviews) * 100) : 0;
-            
+
             // Calculate subject-wise statistics
             const subjectStats = {};
             srsExams.forEach(e => {
@@ -1600,11 +1600,11 @@
             Object.keys(subjectStats).forEach(subject => {
                 subjectStats[subject].avgLevel = (subjectStats[subject].avgLevel / subjectStats[subject].count).toFixed(1);
             });
-            
+
             // Calculate mastery progress (items at high levels)
             const masteryCount = srsExams.filter(e => e.srsLevel >= 5).length;
             const masteryRate = srsExams.length > 0 ? Math.round((masteryCount / srsExams.length) * 100) : 0;
-            
+
             // Calculate average review interval
             let totalInterval = 0;
             let intervalCount = 0;
@@ -1618,21 +1618,21 @@
                 }
             });
             const avgInterval = intervalCount > 0 ? Math.round(totalInterval / intervalCount) : 0;
-            
+
             // Create charts
             const chartContainer = document.createElement('div');
             chartContainer.style.cssText = 'margin-bottom:30px;';
-            
+
             // Chart 1: SRS Level Distribution
             const levelCanvas = document.createElement('canvas');
             levelCanvas.width = 700;
             levelCanvas.height = 300;
             levelCanvas.style.marginBottom = '20px';
             chartContainer.appendChild(levelCanvas);
-            
+
             const levelLabels = Object.keys(levelDist).sort((a, b) => Number(a) - Number(b));
             const levelData = levelLabels.map(level => levelDist[level]);
-            
+
             new Chart(levelCanvas, {
                 type: 'bar',
                 data: {
@@ -1663,7 +1663,7 @@
                     }
                 }
             });
-            
+
             // Chart 2: Performance Pie Chart
             if (totalReviews > 0) {
                 const perfCanvas = document.createElement('canvas');
@@ -1671,7 +1671,7 @@
                 perfCanvas.height = 300;
                 perfCanvas.style.cssText = 'display:inline-block;margin-right:20px;';
                 chartContainer.appendChild(perfCanvas);
-                
+
                 new Chart(perfCanvas, {
                     type: 'pie',
                     data: {
@@ -1698,7 +1698,7 @@
                     }
                 });
             }
-            
+
             // Chart 3: Subject Distribution
             if (Object.keys(subjectStats).length > 0) {
                 const subjectCanvas = document.createElement('canvas');
@@ -1706,13 +1706,13 @@
                 subjectCanvas.height = 300;
                 subjectCanvas.style.cssText = 'display:inline-block;';
                 chartContainer.appendChild(subjectCanvas);
-                
+
                 // Sort subjects by count and take top 8
                 const subjects = Object.keys(subjectStats)
                     .sort((a, b) => subjectStats[b].count - subjectStats[a].count)
                     .slice(0, 8);
                 const subjectCounts = subjects.map(s => subjectStats[s].count);
-                
+
                 new Chart(subjectCanvas, {
                     type: 'doughnut',
                     data: {
@@ -1740,7 +1740,7 @@
                     }
                 });
             }
-            
+
             // Chart 4: Next 14 days review timeline
             const next14Days = [];
             const reviewCounts = [];
@@ -1749,24 +1749,24 @@
                 checkDate.setDate(checkDate.getDate() + i);
                 checkDate.setHours(0, 0, 0, 0);
                 const dateStr = checkDate.toISOString().split('T')[0];
-                
+
                 const count = srsExams.filter(e => {
                     if (!e.srsNextReview) return false;
                     const reviewDate = new Date(e.srsNextReview);
                     reviewDate.setHours(0, 0, 0, 0);
                     return reviewDate.toISOString().split('T')[0] === dateStr;
                 }).length;
-                
+
                 next14Days.push(`${checkDate.getMonth() + 1}/${checkDate.getDate()}`);
                 reviewCounts.push(count);
             }
-            
+
             const timelineCanvas = document.createElement('canvas');
             timelineCanvas.width = 700;
             timelineCanvas.height = 300;
             timelineCanvas.style.marginTop = '20px';
             chartContainer.appendChild(timelineCanvas);
-            
+
             new Chart(timelineCanvas, {
                 type: 'line',
                 data: {
@@ -1801,7 +1801,7 @@
                     }
                 }
             });
-            
+
             // Calculate smart scheduler statistics
             let schedulerHtml = '';
             if (scheduler.schedule && scheduler.schedule.length > 0) {
@@ -1809,15 +1809,15 @@
                 const totalScheduledExams = scheduler.schedule.reduce((sum, day) => sum + day.items.length, 0);
                 const totalScheduledQuestions = scheduler.schedule.reduce((sum, day) => sum + day.totalQuestions, 0);
                 const avgQuestionsPerDay = totalScheduledDays > 0 ? Math.round(totalScheduledQuestions / totalScheduledDays) : 0;
-                
+
                 // Calculate workload distribution
                 const workloadByDay = scheduler.schedule.map(day => day.totalQuestions);
                 const maxWorkload = workloadByDay.length > 0 ? Math.max(...workloadByDay) : 0;
                 const minWorkload = workloadByDay.length > 0 ? Math.min(...workloadByDay) : 0;
-                
+
                 // Get next 7 days schedule preview
                 const next7Days = scheduler.schedule.slice(0, 7);
-                
+
                 schedulerHtml = `
                     <div style="font-size:14px;margin-bottom:25px;line-height:1.8;color:#333;border:2px solid #27ae60;border-radius:8px;padding:15px;background:#f0f9f4;">
                         <div style="font-weight:bold;font-size:16px;margin-bottom:10px;color:#2c3e50;">🤖 智慧排程分析</div>
@@ -1840,13 +1840,13 @@
                     </div>
                 `;
             }
-            
+
             // Build enhanced HTML content with summary cards
             let html = `
                 <div style="text-align:center;font-size:26px;font-weight:bold;margin-bottom:25px;color:#2c3e50;border-bottom:3px solid #3498db;padding-bottom:10px;">
                     📊 SRS 複習報告（增強版）
                 </div>
-                
+
                 <!-- Summary Cards Row -->
                 <div style="display:flex;gap:15px;margin-bottom:25px;">
                     <div style="flex:1;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:10px;padding:15px;color:white;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
@@ -1866,7 +1866,7 @@
                         <div style="font-size:28px;font-weight:bold;">${upcoming}</div>
                     </div>
                 </div>
-                
+
                 <!-- Detailed Statistics -->
                 <div style="font-size:14px;margin-bottom:25px;line-height:1.9;color:#333;border:2px solid #3498db;border-radius:10px;padding:18px;background:#f8f9fa;box-shadow:0 2px 4px rgba(0,0,0,0.05);">
                     <div style="font-weight:bold;font-size:17px;margin-bottom:12px;color:#2c3e50;">📊 詳細統計資訊</div>
@@ -1878,7 +1878,7 @@
                         ${avgInterval > 0 ? `<div>⏱️ 平均複習間隔: <strong>${avgInterval}</strong> 天</div>` : ''}
                     </div>
                 </div>
-                
+
                 <!-- Subject-wise Statistics -->
                 ${Object.keys(subjectStats).length > 0 ? `
                 <div style="font-size:14px;margin-bottom:25px;line-height:1.8;color:#333;border:2px solid #9b59b6;border-radius:10px;padding:18px;background:#f4f1f8;">
@@ -1896,16 +1896,16 @@
                     </div>
                 </div>
                 ` : ''}
-                
+
                 ${schedulerHtml}
-            
+
             // Add section header for review list
             html += `
                 <div style="font-size:17px;font-weight:bold;margin-bottom:15px;margin-top:25px;color:#2c3e50;border-top:2px solid #ddd;padding-top:20px;">
                     📚 複習項目清單
                 </div>
             `;
-            
+
             // Add SRS exam cards sorted by review date
             const sortedSrsExams = srsExams.slice().sort((a, b) => {
                 if (!a.srsNextReview && !b.srsNextReview) return 0;
@@ -1913,13 +1913,13 @@
                 if (!b.srsNextReview) return -1;
                 return new Date(a.srsNextReview) - new Date(b.srsNextReview);
             });
-            
+
             sortedSrsExams.forEach((exam) => {
                 const reviewDate = exam.srsNextReview ? new Date(exam.srsNextReview) : null;
                 let bgColor = '#fafafa';
                 let statusText = 'SRS Level ' + exam.srsLevel;
                 let statusIcon = '📖';
-                
+
                 if (reviewDate) {
                     reviewDate.setHours(0, 0, 0, 0);
                     if (reviewDate < today) {
@@ -1935,10 +1935,10 @@
                         statusIcon = '✅';
                     }
                 }
-                
+
                 const nextReviewText = exam.srsNextReview || "未設定";
                 const lastReviewText = exam.srsLastReview || "未記錄";
-                
+
                 // Performance history with visual indicator
                 let perfHtml = '';
                 if (exam.srsPerformance && exam.srsPerformance.length > 0) {
@@ -1946,7 +1946,7 @@
                     const perfIcons = recent.map(p => p.result === 'good' ? '<span style="color:#27ae60;">✓</span>' : '<span style="color:#e74c3c;">✗</span>').join(' ');
                     perfHtml = `<div style="font-size:11px;color:#666;margin-top:4px;">近期表現: ${perfIcons} (${recent.length} 次)</div>`;
                 }
-                
+
                 html += `
                     <div style="border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:12px;background:${bgColor};box-shadow:0 1px 3px rgba(0,0,0,0.08);">
                         <div style="font-size:16px;font-weight:bold;margin-bottom:8px;color:#2c3e50;">${statusIcon} ${exam.subject} - ${exam.chapter}</div>
@@ -1960,9 +1960,9 @@
                     </div>
                 `;
             });
-            
+
             container.innerHTML = html;
-            
+
             // Add visual charts section
             const chartsSection = document.createElement('div');
             chartsSection.style.cssText = 'margin-top:25px;border-top:2px solid #ddd;padding-top:20px;';
@@ -1972,10 +1972,10 @@
             chartsSection.appendChild(chartTitle);
             chartsSection.appendChild(chartContainer);
             container.appendChild(chartsSection);
-            
+
             // Wait for charts to render before converting to canvas
             await new Promise(resolve => setTimeout(resolve, CHART_RENDER_DELAY));
-            
+
             // Render to canvas with html2canvas (supports Chinese fonts)
             try {
                 const canvas = await html2canvas(container, {
@@ -1983,27 +1983,27 @@
                     backgroundColor: '#ffffff',
                     logging: false
                 });
-                
+
                 // Create PDF and add the rendered image
                 const imgWidth = 210; // A4 width in mm
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 const doc = new jsPDF('p', 'mm', 'a4');
-                
+
                 // If content is too tall, split into multiple pages
                 const pageHeight = 295; // A4 height in mm
                 let heightLeft = imgHeight;
                 let position = 0;
-                
+
                 doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight;
-                
+
                 while (heightLeft > 0) {
                     position = heightLeft - imgHeight;
                     doc.addPage();
                     doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
                 }
-                
+
                 doc.save('srs_report_advanced.pdf');
             } catch (error) {
                 console.error('PDF generation error:', error);
@@ -2015,7 +2015,7 @@
         }
 
         // ============== EXPERIMENTAL AUTO-PLANNING FEATURES ==============
-        
+
         // Intelligent workload balancing - distributes exams evenly over time
         function experimentalWorkloadBalancing() {
             const incomplete = exams.filter(e => !e.completed);
@@ -2023,33 +2023,33 @@
                 alert('沒有未完成的考卷可以規劃');
                 return;
             }
-            
+
             const days = parseInt(prompt('請輸入要分配的天數（建議 7-30 天）:', '14'));
             if (!days || days < 1) return;
-            
+
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             // Calculate total questions
             const totalQuestions = incomplete.reduce((sum, e) => sum + e.questions, 0);
             const questionsPerDay = Math.ceil(totalQuestions / days);
-            
+
             // Sort by subject for better distribution
             const sorted = [...incomplete].sort((a, b) => a.subject.localeCompare(b.subject));
-            
+
             const changes = [];
             let currentDay = 0;
             let currentDayQuestions = 0;
-            
+
             sorted.forEach(exam => {
                 if (currentDayQuestions >= questionsPerDay && currentDay < days - 1) {
                     currentDay++;
                     currentDayQuestions = 0;
                 }
-                
+
                 const planDate = new Date(today);
                 planDate.setDate(planDate.getDate() + currentDay);
-                
+
                 changes.push({
                     id: exam.id,
                     subject: exam.subject,
@@ -2060,13 +2060,13 @@
                     reason: `工作量平衡 (第 ${currentDay + 1} 天, ${currentDayQuestions + exam.questions}/${questionsPerDay} 題)`,
                     type: 'balance'
                 });
-                
+
                 currentDayQuestions += exam.questions;
             });
-            
+
             showPlanPreview(changes, '🔄 工作量平衡規劃');
         }
-        
+
         // Priority-based planning - urgent items first
         function experimentalPriorityPlanning() {
             const incomplete = exams.filter(e => !e.completed);
@@ -2074,10 +2074,10 @@
                 alert('沒有未完成的考卷可以規劃');
                 return;
             }
-            
+
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             // Categorize exams
             const urgent = incomplete.filter(e => {
                 if (!e.dueDate) return false;
@@ -2085,7 +2085,7 @@
                 const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
                 return diff <= 3 && diff >= 0;
             });
-            
+
             const noDueDate = incomplete.filter(e => !e.dueDate);
             const scheduled = incomplete.filter(e => {
                 if (!e.dueDate) return false;
@@ -2093,9 +2093,9 @@
                 const diff = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
                 return diff > 3;
             });
-            
+
             const changes = [];
-            
+
             // Keep urgent items as is or move to today if overdue
             urgent.forEach(exam => {
                 const due = new Date(exam.dueDate);
@@ -2112,12 +2112,12 @@
                     });
                 }
             });
-            
+
             // Distribute items without due date over next week
             noDueDate.forEach((exam, index) => {
                 const planDate = new Date(today);
                 planDate.setDate(planDate.getDate() + (index % 7) + 1);
-                
+
                 changes.push({
                     id: exam.id,
                     subject: exam.subject,
@@ -2129,10 +2129,10 @@
                     type: 'auto'
                 });
             });
-            
+
             showPlanPreview(changes, '⚡ 優先級規劃');
         }
-        
+
         // Subject rotation planning - alternate between subjects
         function experimentalSubjectRotation() {
             const incomplete = exams.filter(e => !e.completed);
@@ -2140,39 +2140,39 @@
                 alert('沒有未完成的考卷可以規劃');
                 return;
             }
-            
+
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             // Group by subject
             const bySubject = {};
             incomplete.forEach(exam => {
                 if (!bySubject[exam.subject]) bySubject[exam.subject] = [];
                 bySubject[exam.subject].push(exam);
             });
-            
+
             const subjects = Object.keys(bySubject);
             const changes = [];
             let dayOffset = 0;
-            
+
             // Rotate through subjects
             let hasMore = true;
             let subjectIndex = 0;
-            
+
             while (hasMore) {
                 hasMore = false;
-                
+
                 for (let i = 0; i < subjects.length; i++) {
                     const subject = subjects[i];
                     const examsInSubject = bySubject[subject];
-                    
+
                     if (examsInSubject.length > 0) {
                         hasMore = true;
                         const exam = examsInSubject.shift();
-                        
+
                         const planDate = new Date(today);
                         planDate.setDate(planDate.getDate() + dayOffset);
-                        
+
                         changes.push({
                             id: exam.id,
                             subject: exam.subject,
@@ -2183,29 +2183,29 @@
                             reason: `科目輪替 - 第 ${dayOffset + 1} 天`,
                             type: 'rotation'
                         });
-                        
+
                         dayOffset++;
                     }
                 }
             }
-            
+
             showPlanPreview(changes, '🔀 科目輪替規劃');
         }
-        
+
         // Generic plan preview function
         function showPlanPreview(changes, title) {
             if (changes.length === 0) {
                 alert('沒有需要變更的項目');
                 return;
             }
-            
+
             const modal = document.createElement('div');
             modal.id = 'exp-plan-modal';
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.3s';
-            
+
             const content = document.createElement('div');
             content.style.cssText = 'background:var(--container-bg);padding:24px;border-radius:12px;max-width:800px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.3)';
-            
+
             let html = `
                 <h2 style="margin:0 0 16px 0;color:var(--header-color)">${title}</h2>
                 <div style="margin-bottom:20px;padding:12px;background:var(--secondary-color);border-radius:8px;">
@@ -2216,7 +2216,7 @@
                     <div style="font-weight:bold;margin-bottom:12px">📝 規劃詳情 (可編輯到期日)</div>
                     <div id="exp-plan-items-container">
             `;
-            
+
             changes.forEach((change, index) => {
                 const typeColors = {
                     balance: '#3498db',
@@ -2225,7 +2225,7 @@
                     rotation: '#9b59b6'
                 };
                 const typeColor = typeColors[change.type] || '#95a5a6';
-                
+
                 html += `
                     <div style="border:1px solid var(--border-color);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--container-bg)">
                         <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
@@ -2242,16 +2242,16 @@
                             <div style="color:var(--primary-color);font-weight:bold">→</div>
                             <div>
                                 <div style="color:var(--muted);font-size:11px">新到期日</div>
-                                <input type="date" 
-                                    data-exp-change-index="${index}" 
-                                    value="${change.newDate}" 
+                                <input type="date"
+                                    data-exp-change-index="${index}"
+                                    value="${change.newDate}"
                                     style="padding:6px;border:1px solid var(--border-color);border-radius:4px;background:var(--container-bg);color:var(--text-color);width:100%" />
                             </div>
                         </div>
                     </div>
                 `;
             });
-            
+
             html += `
                     </div>
                 </div>
@@ -2260,17 +2260,17 @@
                     <button id="exp-apply-btn" style="padding:10px 20px;border:none;border-radius:8px;background:var(--primary-color);color:white;cursor:pointer;font-size:14px;font-weight:bold">套用規劃</button>
                 </div>
             `;
-            
+
             content.innerHTML = html;
             modal.appendChild(content);
             document.body.appendChild(modal);
-            
+
             window.currentExpPlan = changes;
-            
+
             // Add event listeners
             document.getElementById('exp-cancel-btn').addEventListener('click', window.closeExpPlanModal);
             document.getElementById('exp-apply-btn').addEventListener('click', window.applyAndCloseExpPlan);
-            
+
             // Add listeners for date inputs
             document.querySelectorAll('[data-exp-change-index]').forEach(input => {
                 input.addEventListener('change', function() {
@@ -2280,45 +2280,45 @@
             });
         }
 
-        
+
         // Show experimental planning options
         window.showExperimentalPlanningMenu = function() {
             const modal = document.createElement('div');
             modal.id = 'exp-menu-modal';
             modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.3s';
-            
+
             const content = document.createElement('div');
             content.style.cssText = 'background:var(--container-bg);padding:24px;border-radius:12px;max-width:600px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.3)';
-            
+
             content.innerHTML = `
                 <h2 style="margin:0 0 16px 0;color:var(--header-color)">🧪 實驗性自動規劃功能</h2>
                 <p style="color:var(--muted);margin-bottom:20px;font-size:14px">選擇一個規劃策略來自動安排你的考卷</p>
-                
+
                 <div style="display:flex;flex-direction:column;gap:12px">
                     <button id="exp-workload-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
                         <div style="font-weight:bold;font-size:16px;margin-bottom:4px">🔄 工作量平衡規劃</div>
                         <div style="font-size:13px;color:var(--muted)">將所有未完成的考卷均勻分配到指定天數內，確保每天工作量相近</div>
                     </button>
-                    
+
                     <button id="exp-priority-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
                         <div style="font-weight:bold;font-size:16px;margin-bottom:4px">⚡ 優先級規劃</div>
                         <div style="font-size:13px;color:var(--muted)">根據到期日緊急程度自動安排，優先處理即將到期的項目</div>
                     </button>
-                    
+
                     <button id="exp-rotation-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
                         <div style="font-weight:bold;font-size:16px;margin-bottom:4px">🔀 科目輪替規劃</div>
                         <div style="font-size:13px;color:var(--muted)">交替安排不同科目的考卷，避免單一科目過於密集</div>
                     </button>
                 </div>
-                
+
                 <div style="margin-top:20px;display:flex;justify-content:flex-end">
                     <button id="exp-menu-close-btn" style="padding:10px 20px;border:1px solid var(--border-color);border-radius:8px;background:var(--secondary-color);color:var(--text-color);cursor:pointer;font-size:14px">關閉</button>
                 </div>
             `;
-            
+
             modal.appendChild(content);
             document.body.appendChild(modal);
-            
+
             // Add event listeners after appending to DOM
             document.getElementById('exp-workload-btn').addEventListener('click', () => {
                 window.closeExpMenu();
@@ -2510,18 +2510,18 @@
                             <strong style="font-size:22px">番茄鐘（全螢幕）</strong>
                             <div>
                                 <button id="pomfs-close" style="margin-right:8px" class="theme-toggle">關閉</button>
-                                <button id="pomfs-start" class="icon-btn">開始</button>
+                                <button type="button" id="pomfs-start" class="icon-btn">開始</button>
                             </div>
                         </div>
                         <div style="margin-top:20px">
                             <div id="pomfs-display" class="timer-display">25:00</div>
                             <div style="margin-top:12px">
-                                <button id="pomfs-pause" class="theme-toggle">暫停/繼續</button>
-                                <button id="pomfs-reset" class="theme-toggle">重設</button>
+                                <button type="button" id="pomfs-pause" class="theme-toggle">暫停/繼續</button>
+                                <button type="button" id="pomfs-reset" class="theme-toggle">重設</button>
                             </div>
                             <div style="margin-top:12px">
                                 <label class="small muted" style="display:flex;align-items:center;gap:8px;justify-content:center">
-                                    <input type="checkbox" id="pomfs-enable-sound" /> 啟用音效
+                                    <input type="checkbox" id="pomfs-enable-sound"> 啟用音效
                                 </label>
                             </div>
                         </div>
@@ -2613,7 +2613,7 @@
         // Smart scheduling algorithm
         function generateSchedule() {
             const { dailyCapacity, priorityMode, bufferDays, capacityMode, excludedDates, calendarCapacity } = scheduler.settings;
-            
+
             // Filter incomplete exams
             const incomplete = exams.filter(e => !e.completed);
             if (incomplete.length === 0) {
@@ -2662,10 +2662,10 @@
                 const currentDay = new Date(today);
                 currentDay.setDate(currentDay.getDate() + dayOffset);
                 const dateStr = currentDay.toISOString().split('T')[0];
-                
+
                 // Check if date is excluded
                 const isExcluded = excludedDates && excludedDates.includes(dateStr);
-                
+
                 // Get capacity for this day
                 let remainingCapacity = 0;
                 if (!isExcluded) {
@@ -2677,20 +2677,20 @@
                         remainingCapacity = dailyCapacity;
                     }
                 }
-                
+
                 // Skip this day if no capacity or excluded
                 if (remainingCapacity <= 0) {
                     dayOffset++;
                     if (dayOffset > 90) break; // Safety limit
                     continue;
                 }
-                
+
                 const daySchedule = {
                     date: dateStr,
                     items: [],
                     totalQuestions: 0
                 };
-                
+
                 while (remainingCapacity > 0 && examQueue.length > 0) {
                     const exam = examQueue[0];
                     const examQuestions = exam.questions;
@@ -2734,7 +2734,7 @@
                 }
 
                 dayOffset++;
-                
+
                 // Safety limit: don't schedule more than 90 days out
                 if (dayOffset > 90) break;
             }
@@ -2754,26 +2754,26 @@
             }
 
             container.innerHTML = '';
-            
+
             scheduler.schedule.forEach((day, idx) => {
                 const dayDiv = document.createElement('div');
                 dayDiv.className = 'schedule-day';
                 dayDiv.setAttribute('data-day-index', idx);
                 dayDiv.setAttribute('data-day-date', day.date);
-                
+
                 const date = new Date(day.date);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const diffDays = Math.round((date - today) / (24*3600*1000));
-                
+
                 let dayLabel = '';
                 if (diffDays === 0) dayLabel = '今天';
                 else if (diffDays === 1) dayLabel = '明天';
                 else if (diffDays < 7) dayLabel = `${diffDays} 天後`;
                 else dayLabel = `${Math.floor(diffDays/7)} 週後`;
-                
+
                 const weekday = ['日', '一', '二', '三', '四', '五', '六'][date.getDay()];
-                
+
                 dayDiv.innerHTML = `
                     <div class="schedule-day-header">
                         <div class="schedule-day-title">第 ${idx + 1} 天 - ${dayLabel} (週${weekday}) ${day.date}</div>
@@ -2793,7 +2793,7 @@
                         `).join('')}
                     </div>
                 `;
-                
+
                 container.appendChild(dayDiv);
             });
 
@@ -2811,35 +2811,35 @@
                             const examId = parseInt(evt.item.getAttribute('data-exam-id'));
                             const oldDayIndex = parseInt(evt.from.closest('.schedule-day').getAttribute('data-day-index'));
                             const newDayIndex = parseInt(evt.to.closest('.schedule-day').getAttribute('data-day-index'));
-                            
+
                             // Validate indices
-                            if (oldDayIndex < 0 || oldDayIndex >= scheduler.schedule.length || 
+                            if (oldDayIndex < 0 || oldDayIndex >= scheduler.schedule.length ||
                                 newDayIndex < 0 || newDayIndex >= scheduler.schedule.length) {
                                 console.error('Invalid day index in drag-and-drop');
                                 return;
                             }
-                            
+
                             if (oldDayIndex !== newDayIndex) {
                                 // Item was moved to a different day
                                 const newDate = scheduler.schedule[newDayIndex].date;
-                                
+
                                 // Find the item in the old day and move it to the new day
                                 const oldDay = scheduler.schedule[oldDayIndex];
                                 const itemIndex = oldDay.items.findIndex(item => item.id === examId);
-                                
+
                                 if (itemIndex !== -1) {
                                     const movedItem = oldDay.items.splice(itemIndex, 1)[0];
                                     oldDay.totalQuestions -= movedItem.questions;
-                                    
+
                                     // Add to new day
                                     const newDay = scheduler.schedule[newDayIndex];
                                     newDay.items.push(movedItem);
                                     newDay.totalQuestions += movedItem.questions;
-                                    
+
                                     // Update due date in moved item
                                     movedItem.dueDate = newDate;
                                 }
-                                
+
                                 // Update the exam's due date in main exams array
                                 const exam = exams.find(e => e.id === examId);
                                 if (exam) {
@@ -2847,10 +2847,10 @@
                                     saveExams();
                                     render();
                                 }
-                                
+
                                 // Save updated schedule
                                 saveSchedule();
-                                
+
                                 // Re-render schedule to show updated totals
                                 renderSchedule();
                             }
@@ -2872,20 +2872,20 @@
             const panel = document.getElementById('scheduler-panel');
             if (panel) panel.style.display = 'none';
         }
-        
+
         // Apply smart scheduler plan to original exam due dates
         function applyScheduleToExams() {
             if (!scheduler.schedule || scheduler.schedule.length === 0) {
                 alert('目前沒有排程可以套用');
                 return;
             }
-            
+
             if (!confirm('確定要將智慧排程套用到原始計畫嗎？這會更新所有考卷的到期日。')) {
                 return;
             }
-            
+
             let updatedCount = 0;
-            
+
             // Apply scheduled dates to exams
             scheduler.schedule.forEach(day => {
                 day.items.forEach(item => {
@@ -2896,7 +2896,7 @@
                     }
                 });
             });
-            
+
             if (updatedCount > 0) {
                 saveExams();
                 render();
@@ -2921,7 +2921,7 @@
             const priorityMode = document.getElementById('priority-mode').value;
             const bufferDays = parseInt(document.getElementById('buffer-days').value) || 2;
             const capacityMode = document.getElementById('capacity-mode').value;
-            
+
             scheduler.settings = {
                 dailyCapacity,
                 priorityMode,
@@ -2931,7 +2931,7 @@
                 calendarCapacity: scheduler.settings.calendarCapacity || {},
                 onboardingComplete: true
             };
-            
+
             saveSchedulerSettings();
             hideOnboarding();
             generateSchedule();
@@ -2944,27 +2944,27 @@
             document.getElementById('priority-mode').value = scheduler.settings.priorityMode;
             document.getElementById('buffer-days').value = scheduler.settings.bufferDays;
             document.getElementById('capacity-mode').value = scheduler.settings.capacityMode || 'simple';
-            
+
             // Trigger capacity mode change to show correct UI
             handleCapacityModeChange();
-            
+
             // Render excluded dates
             renderExcludedDates();
-            
+
             // Render calendar if in calendar mode
             if (scheduler.settings.capacityMode === 'calendar') {
                 renderCalendarCapacity();
             }
-            
+
             showOnboarding();
         }
-        
+
         // Handle capacity mode toggle
         function handleCapacityModeChange() {
             const mode = document.getElementById('capacity-mode').value;
             const simpleSettings = document.getElementById('simple-mode-settings');
             const calendarSettings = document.getElementById('calendar-mode-settings');
-            
+
             if (mode === 'simple') {
                 simpleSettings.style.display = 'block';
                 calendarSettings.style.display = 'none';
@@ -2974,18 +2974,18 @@
                 renderCalendarCapacity();
             }
         }
-        
+
         // Render excluded dates tags
         function renderExcludedDates() {
             const container = document.getElementById('excluded-dates-list');
             if (!container) return;
-            
+
             container.innerHTML = '';
             if (!scheduler.settings.excludedDates || scheduler.settings.excludedDates.length === 0) {
                 container.innerHTML = '<div class="small muted">尚未排除任何日期</div>';
                 return;
             }
-            
+
             scheduler.settings.excludedDates.forEach(date => {
                 const tag = document.createElement('div');
                 tag.className = 'excluded-date-tag';
@@ -2996,52 +2996,52 @@
                 container.appendChild(tag);
             });
         }
-        
+
         // Add excluded date
         window.addExcludedDate = function() {
             const picker = document.getElementById('excluded-date-picker');
             const date = picker.value;
-            
+
             if (!date) {
                 alert('請選擇要排除的日期');
                 return;
             }
-            
+
             if (!scheduler.settings.excludedDates) {
                 scheduler.settings.excludedDates = [];
             }
-            
+
             if (scheduler.settings.excludedDates.includes(date)) {
                 alert('此日期已經被排除');
                 return;
             }
-            
+
             scheduler.settings.excludedDates.push(date);
             scheduler.settings.excludedDates.sort();
             renderExcludedDates();
             picker.value = '';
         };
-        
+
         // Remove excluded date
         window.removeExcludedDate = function(date) {
             if (!scheduler.settings.excludedDates) return;
             scheduler.settings.excludedDates = scheduler.settings.excludedDates.filter(d => d !== date);
             renderExcludedDates();
         };
-        
+
         // Calendar capacity state
         let currentCalendarMonth = new Date();
-        
+
         // Render calendar for capacity setting
         function renderCalendarCapacity() {
             const container = document.getElementById('calendar-container');
             if (!container) return;
-            
+
             const year = currentCalendarMonth.getFullYear();
             const month = currentCalendarMonth.getMonth();
-            
+
             const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
-            
+
             let html = `
                 <div class="calendar-month-header">
                     <button class="calendar-nav-btn" onclick="prevCalendarMonth()">◀ 上個月</button>
@@ -3057,17 +3057,17 @@
                     <div class="calendar-day-header">五</div>
                     <div class="calendar-day-header">六</div>
             `;
-            
+
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             // Add empty cells for days before month starts
             for (let i = 0; i < firstDay; i++) {
                 html += '<div class="calendar-day disabled"></div>';
             }
-            
+
             // Add days of the month
             for (let day = 1; day <= daysInMonth; day++) {
                 const date = new Date(year, month, day);
@@ -3075,57 +3075,57 @@
                 const dateStr = formatDate(date);
                 const isPast = date < today;
                 const capacity = scheduler.settings.calendarCapacity[dateStr] || 0;
-                
+
                 const hasCapacityClass = capacity > 0 ? 'has-capacity' : '';
                 const disabledClass = isPast ? 'disabled' : '';
-                
+
                 html += `
-                    <div class="calendar-day ${hasCapacityClass} ${disabledClass}" 
+                    <div class="calendar-day ${hasCapacityClass} ${disabledClass}"
                          onclick="${isPast ? '' : `setDayCapacity('${dateStr}')`}">
                         <div class="calendar-day-number">${day}</div>
                         ${capacity > 0 ? `<div class="calendar-day-capacity">${capacity} 題</div>` : ''}
                     </div>
                 `;
             }
-            
+
             html += '</div>';
             container.innerHTML = html;
         }
-        
+
         // Navigate calendar months
         window.prevCalendarMonth = function() {
             currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() - 1);
             renderCalendarCapacity();
         };
-        
+
         window.nextCalendarMonth = function() {
             currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + 1);
             renderCalendarCapacity();
         };
-        
+
         // Set capacity for a specific day
         window.setDayCapacity = function(dateStr) {
             const currentCapacity = scheduler.settings.calendarCapacity[dateStr] || 0;
             const newCapacity = prompt(`設定 ${dateStr} 的可完成題數：`, currentCapacity);
-            
+
             if (newCapacity === null) return; // User cancelled
-            
+
             const capacity = parseInt(newCapacity);
             if (isNaN(capacity) || capacity < 0) {
                 alert('請輸入有效的題數（0 或以上）');
                 return;
             }
-            
+
             if (!scheduler.settings.calendarCapacity) {
                 scheduler.settings.calendarCapacity = {};
             }
-            
+
             if (capacity === 0) {
                 delete scheduler.settings.calendarCapacity[dateStr];
             } else {
                 scheduler.settings.calendarCapacity[dateStr] = capacity;
             }
-            
+
             renderCalendarCapacity();
         };
 
@@ -3150,7 +3150,7 @@
                 }
             });
         }
-        
+
         if (applyScheduleBtn) {
             applyScheduleBtn.addEventListener('click', applyScheduleToExams);
         }
@@ -3180,15 +3180,15 @@
                 hideOnboarding();
             });
         }
-        
+
         // Add event listeners for capacity mode and excluded dates
         const capacityModeSelect = document.getElementById('capacity-mode');
         const addExcludedDateBtn = document.getElementById('add-excluded-date');
-        
+
         if (capacityModeSelect) {
             capacityModeSelect.addEventListener('change', handleCapacityModeChange);
         }
-        
+
         if (addExcludedDateBtn) {
             addExcludedDateBtn.addEventListener('click', window.addExcludedDate);
         }
@@ -3235,7 +3235,7 @@
             navigator.serviceWorker.register('/sw.js')
                 .then(registration => {
                     console.log('ServiceWorker registered: ', registration);
-                    
+
                     // Check for updates periodically
                     setInterval(() => {
                         registration.update();
@@ -3254,10 +3254,10 @@
         e.preventDefault();
         // Stash the event so it can be triggered later
         deferredPrompt = e;
-        
+
         // Show install button/banner (optional - can be customized)
         console.log('App can be installed');
-        
+
         // Optionally show a custom install prompt
         const installBanner = document.createElement('div');
         installBanner.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--primary-color);color:white;padding:12px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:1000;display:flex;gap:10px;align-items:center;';
@@ -3267,7 +3267,7 @@
             <button id="dismiss-install" style="background:rgba(255,255,255,0.2);color:white;border:none;padding:6px 12px;border-radius:5px;cursor:pointer;">&times;</button>
         `;
         document.body.appendChild(installBanner);
-        
+
         document.getElementById('install-btn').addEventListener('click', async () => {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
@@ -3277,7 +3277,7 @@
                 installBanner.remove();
             }
         });
-        
+
         document.getElementById('dismiss-install').addEventListener('click', () => {
             installBanner.remove();
         });
