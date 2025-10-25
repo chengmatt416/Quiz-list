@@ -39,6 +39,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         :root{
             --bg-color:#f4f7f6;
@@ -1516,9 +1517,16 @@
         }
 
         async function exportSRSReport() {
-            // Check if jsPDF is available
+            // Constants
+            const CHART_RENDER_DELAY = 500; // ms - time to wait for charts to fully render
+            
+            // Check if jsPDF and Chart.js are available
             if (!window.jspdf && !window.jsPDF) {
                 alert('PDF 匯出功能載入中，請稍後再試');
+                return;
+            }
+            if (!window.Chart) {
+                alert('圖表功能載入中，請稍後再試');
                 return;
             }
             const { jsPDF } = window.jspdf || window;
@@ -1565,13 +1573,234 @@
             // Calculate performance stats
             let totalReviews = 0;
             let goodReviews = 0;
+            let badReviews = 0;
             srsExams.forEach(e => {
                 if (e.srsPerformance && Array.isArray(e.srsPerformance)) {
                     totalReviews += e.srsPerformance.length;
                     goodReviews += e.srsPerformance.filter(p => p.result === 'good').length;
+                    // Bad reviews are any that aren't good (could be 'bad', 'hard', etc.)
+                    badReviews += e.srsPerformance.filter(p => p.result !== 'good').length;
                 }
             });
             const performanceRate = totalReviews > 0 ? Math.round((goodReviews / totalReviews) * 100) : 0;
+            
+            // Calculate subject-wise statistics
+            const subjectStats = {};
+            srsExams.forEach(e => {
+                if (!subjectStats[e.subject]) {
+                    subjectStats[e.subject] = { count: 0, totalQuestions: 0, avgLevel: 0, reviews: 0 };
+                }
+                subjectStats[e.subject].count++;
+                subjectStats[e.subject].totalQuestions += e.questions;
+                subjectStats[e.subject].avgLevel += e.srsLevel;
+                if (e.srsPerformance) {
+                    subjectStats[e.subject].reviews += e.srsPerformance.length;
+                }
+            });
+            Object.keys(subjectStats).forEach(subject => {
+                subjectStats[subject].avgLevel = (subjectStats[subject].avgLevel / subjectStats[subject].count).toFixed(1);
+            });
+            
+            // Calculate mastery progress (items at high levels)
+            const masteryCount = srsExams.filter(e => e.srsLevel >= 5).length;
+            const masteryRate = srsExams.length > 0 ? Math.round((masteryCount / srsExams.length) * 100) : 0;
+            
+            // Calculate average review interval
+            let totalInterval = 0;
+            let intervalCount = 0;
+            srsExams.forEach(e => {
+                if (e.srsLastReview && e.srsNextReview) {
+                    const lastDate = new Date(e.srsLastReview);
+                    const nextDate = new Date(e.srsNextReview);
+                    const interval = Math.ceil((nextDate - lastDate) / (1000 * 60 * 60 * 24));
+                    totalInterval += interval;
+                    intervalCount++;
+                }
+            });
+            const avgInterval = intervalCount > 0 ? Math.round(totalInterval / intervalCount) : 0;
+            
+            // Create charts
+            const chartContainer = document.createElement('div');
+            chartContainer.style.cssText = 'margin-bottom:30px;';
+            
+            // Chart 1: SRS Level Distribution
+            const levelCanvas = document.createElement('canvas');
+            levelCanvas.width = 700;
+            levelCanvas.height = 300;
+            levelCanvas.style.marginBottom = '20px';
+            chartContainer.appendChild(levelCanvas);
+            
+            const levelLabels = Object.keys(levelDist).sort((a, b) => Number(a) - Number(b));
+            const levelData = levelLabels.map(level => levelDist[level]);
+            
+            new Chart(levelCanvas, {
+                type: 'bar',
+                data: {
+                    labels: levelLabels.map(l => `Level ${l}`),
+                    datasets: [{
+                        label: '項目數量',
+                        data: levelData,
+                        backgroundColor: ['#e74c3c', '#e67e22', '#f39c12', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6', '#1abc9c'],
+                        borderColor: '#2c3e50',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'SRS 等級分布',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+            
+            // Chart 2: Performance Pie Chart
+            if (totalReviews > 0) {
+                const perfCanvas = document.createElement('canvas');
+                perfCanvas.width = 350;
+                perfCanvas.height = 300;
+                perfCanvas.style.cssText = 'display:inline-block;margin-right:20px;';
+                chartContainer.appendChild(perfCanvas);
+                
+                new Chart(perfCanvas, {
+                    type: 'pie',
+                    data: {
+                        labels: ['成功複習', '困難複習'],
+                        datasets: [{
+                            data: [goodReviews, badReviews],
+                            backgroundColor: ['#2ecc71', '#e74c3c'],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: '複習表現分布',
+                                font: { size: 16, weight: 'bold' }
+                            },
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Chart 3: Subject Distribution
+            if (Object.keys(subjectStats).length > 0) {
+                const subjectCanvas = document.createElement('canvas');
+                subjectCanvas.width = 350;
+                subjectCanvas.height = 300;
+                subjectCanvas.style.cssText = 'display:inline-block;';
+                chartContainer.appendChild(subjectCanvas);
+                
+                // Sort subjects by count and take top 8
+                const subjects = Object.keys(subjectStats)
+                    .sort((a, b) => subjectStats[b].count - subjectStats[a].count)
+                    .slice(0, 8);
+                const subjectCounts = subjects.map(s => subjectStats[s].count);
+                
+                new Chart(subjectCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: subjects,
+                        datasets: [{
+                            data: subjectCounts,
+                            backgroundColor: ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#95a5a6'],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: '科目分布',
+                                font: { size: 16, weight: 'bold' }
+                            },
+                            legend: {
+                                position: 'bottom',
+                                labels: { boxWidth: 15 }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Chart 4: Next 14 days review timeline
+            const next14Days = [];
+            const reviewCounts = [];
+            for (let i = 0; i < 14; i++) {
+                const checkDate = new Date(today);
+                checkDate.setDate(checkDate.getDate() + i);
+                checkDate.setHours(0, 0, 0, 0);
+                const dateStr = checkDate.toISOString().split('T')[0];
+                
+                const count = srsExams.filter(e => {
+                    if (!e.srsNextReview) return false;
+                    const reviewDate = new Date(e.srsNextReview);
+                    reviewDate.setHours(0, 0, 0, 0);
+                    return reviewDate.toISOString().split('T')[0] === dateStr;
+                }).length;
+                
+                next14Days.push(`${checkDate.getMonth() + 1}/${checkDate.getDate()}`);
+                reviewCounts.push(count);
+            }
+            
+            const timelineCanvas = document.createElement('canvas');
+            timelineCanvas.width = 700;
+            timelineCanvas.height = 300;
+            timelineCanvas.style.marginTop = '20px';
+            chartContainer.appendChild(timelineCanvas);
+            
+            new Chart(timelineCanvas, {
+                type: 'line',
+                data: {
+                    labels: next14Days,
+                    datasets: [{
+                        label: '預定複習數量',
+                        data: reviewCounts,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#3498db'
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '未來14天複習時間軸',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
             
             // Calculate smart scheduler statistics
             let schedulerHtml = '';
@@ -1612,27 +1841,68 @@
                 `;
             }
             
-            // Build enhanced HTML content
+            // Build enhanced HTML content with summary cards
             let html = `
-                <div style="text-align:center;font-size:24px;font-weight:bold;margin-bottom:20px;color:#2c3e50;">
-                    SRS 複習報告（進階版）
+                <div style="text-align:center;font-size:26px;font-weight:bold;margin-bottom:25px;color:#2c3e50;border-bottom:3px solid #3498db;padding-bottom:10px;">
+                    📊 SRS 複習報告（增強版）
                 </div>
-                <div style="font-size:14px;margin-bottom:25px;line-height:1.8;color:#333;border:2px solid #3498db;border-radius:8px;padding:15px;background:#f8f9fa;">
-                    <div style="font-weight:bold;font-size:16px;margin-bottom:10px;color:#2c3e50;">📊 總體統計</div>
-                    <div>報告日期: ${formatDate(today)}</div>
-                    <div>總複習項目: <strong>${srsExams.length}</strong></div>
-                    <div>今日到期: <strong style="color:#f39c12">${dueToday}</strong> | 已過期: <strong style="color:#e74c3c">${overdue}</strong> | 七天內: <strong style="color:#27ae60">${upcoming}</strong></div>
-                    ${totalReviews > 0 ? `<div>總複習次數: ${totalReviews} | 表現良好率: <strong style="color:#27ae60">${performanceRate}%</strong></div>` : ''}
+                
+                <!-- Summary Cards Row -->
+                <div style="display:flex;gap:15px;margin-bottom:25px;">
+                    <div style="flex:1;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:10px;padding:15px;color:white;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size:12px;opacity:0.9;margin-bottom:5px;">總複習項目</div>
+                        <div style="font-size:28px;font-weight:bold;">${srsExams.length}</div>
+                    </div>
+                    <div style="flex:1;background:linear-gradient(135deg, #f093fb 0%, #f5576c 100%);border-radius:10px;padding:15px;color:white;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size:12px;opacity:0.9;margin-bottom:5px;">今日到期</div>
+                        <div style="font-size:28px;font-weight:bold;">${dueToday}</div>
+                    </div>
+                    <div style="flex:1;background:linear-gradient(135deg, #fa709a 0%, #fee140 100%);border-radius:10px;padding:15px;color:white;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size:12px;opacity:0.9;margin-bottom:5px;">已過期</div>
+                        <div style="font-size:28px;font-weight:bold;">${overdue}</div>
+                    </div>
+                    <div style="flex:1;background:linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);border-radius:10px;padding:15px;color:white;box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="font-size:12px;opacity:0.9;margin-bottom:5px;">七天內</div>
+                        <div style="font-size:28px;font-weight:bold;">${upcoming}</div>
+                    </div>
                 </div>
+                
+                <!-- Detailed Statistics -->
+                <div style="font-size:14px;margin-bottom:25px;line-height:1.9;color:#333;border:2px solid #3498db;border-radius:10px;padding:18px;background:#f8f9fa;box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="font-weight:bold;font-size:17px;margin-bottom:12px;color:#2c3e50;">📊 詳細統計資訊</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div>📅 報告日期: <strong>${formatDate(today)}</strong></div>
+                        <div>📈 掌握程度: <strong style="color:#27ae60">${masteryRate}%</strong> (Level 5+)</div>
+                        ${totalReviews > 0 ? `<div>✅ 總複習次數: <strong>${totalReviews}</strong> 次</div>` : ''}
+                        ${totalReviews > 0 ? `<div>🎯 成功率: <strong style="color:${performanceRate >= 70 ? '#27ae60' : performanceRate >= 50 ? '#f39c12' : '#e74c3c'}">${performanceRate}%</strong></div>` : ''}
+                        ${avgInterval > 0 ? `<div>⏱️ 平均複習間隔: <strong>${avgInterval}</strong> 天</div>` : ''}
+                    </div>
+                </div>
+                
+                <!-- Subject-wise Statistics -->
+                ${Object.keys(subjectStats).length > 0 ? `
+                <div style="font-size:14px;margin-bottom:25px;line-height:1.8;color:#333;border:2px solid #9b59b6;border-radius:10px;padding:18px;background:#f4f1f8;">
+                    <div style="font-weight:bold;font-size:17px;margin-bottom:12px;color:#2c3e50;">📚 科目統計分析</div>
+                    <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:12px;">
+                        ${Object.keys(subjectStats).slice(0, 6).map(subject => `
+                            <div style="background:white;padding:12px;border-radius:8px;border-left:4px solid #9b59b6;">
+                                <div style="font-weight:bold;color:#2c3e50;margin-bottom:6px;">${subject}</div>
+                                <div style="font-size:12px;color:#666;">
+                                    <div>項目數: ${subjectStats[subject].count} | 題數: ${subjectStats[subject].totalQuestions}</div>
+                                    <div>平均等級: ${subjectStats[subject].avgLevel} | 複習次數: ${subjectStats[subject].reviews}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+                
                 ${schedulerHtml}
-                <div style="font-size:14px;margin-bottom:20px;line-height:1.8;color:#333;">
-                    <div style="font-weight:bold;font-size:16px;margin-bottom:10px;color:#2c3e50;">📈 等級分布</div>
-                    ${Object.keys(levelDist).sort((a, b) => Number(b) - Number(a)).map(level => 
-                        `<div style="margin-bottom:5px;">Level ${level}: <strong>${levelDist[level]}</strong> 項 (間隔 ${SRS_INTERVALS[level]} 天)</div>`
-                    ).join('')}
-                </div>
-                <div style="font-size:16px;font-weight:bold;margin-bottom:12px;color:#2c3e50;border-top:2px solid #ddd;padding-top:15px;">
-                    📚 SRS 複習清單
+            
+            // Add section header for review list
+            html += `
+                <div style="font-size:17px;font-weight:bold;margin-bottom:15px;margin-top:25px;color:#2c3e50;border-top:2px solid #ddd;padding-top:20px;">
+                    📚 複習項目清單
                 </div>
             `;
             
@@ -1669,21 +1939,22 @@
                 const nextReviewText = exam.srsNextReview || "未設定";
                 const lastReviewText = exam.srsLastReview || "未記錄";
                 
-                // Performance history
+                // Performance history with visual indicator
                 let perfHtml = '';
                 if (exam.srsPerformance && exam.srsPerformance.length > 0) {
-                    const recent = exam.srsPerformance.slice(-3);
-                    perfHtml = `<div style="font-size:11px;color:#666;margin-top:4px;">近期表現: ${recent.map(p => p.result === 'good' ? '✓' : '✗').join(' ')}</div>`;
+                    const recent = exam.srsPerformance.slice(-5);
+                    const perfIcons = recent.map(p => p.result === 'good' ? '<span style="color:#27ae60;">✓</span>' : '<span style="color:#e74c3c;">✗</span>').join(' ');
+                    perfHtml = `<div style="font-size:11px;color:#666;margin-top:4px;">近期表現: ${perfIcons} (${recent.length} 次)</div>`;
                 }
                 
                 html += `
-                    <div style="border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:12px;background:${bgColor};">
+                    <div style="border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:12px;background:${bgColor};box-shadow:0 1px 3px rgba(0,0,0,0.08);">
                         <div style="font-size:16px;font-weight:bold;margin-bottom:8px;color:#2c3e50;">${statusIcon} ${exam.subject} - ${exam.chapter}</div>
                         <div style="font-size:12px;line-height:1.6;color:#555;">
-                            <div>題數: ${exam.questions}</div>
-                            <div style="font-weight:bold;">狀態: ${statusText}</div>
-                            <div>上次複習: ${lastReviewText}</div>
-                            <div>下次複習: ${nextReviewText}</div>
+                            <div>📝 題數: <strong>${exam.questions}</strong></div>
+                            <div style="font-weight:bold;color:#3498db;">狀態: ${statusText}</div>
+                            <div>🕐 上次複習: ${lastReviewText}</div>
+                            <div>📅 下次複習: ${nextReviewText}</div>
                             ${perfHtml}
                         </div>
                     </div>
@@ -1691,6 +1962,19 @@
             });
             
             container.innerHTML = html;
+            
+            // Add visual charts section
+            const chartsSection = document.createElement('div');
+            chartsSection.style.cssText = 'margin-top:25px;border-top:2px solid #ddd;padding-top:20px;';
+            const chartTitle = document.createElement('div');
+            chartTitle.style.cssText = 'font-size:17px;font-weight:bold;margin-bottom:20px;color:#2c3e50;';
+            chartTitle.textContent = '📊 視覺化分析圖表';
+            chartsSection.appendChild(chartTitle);
+            chartsSection.appendChild(chartContainer);
+            container.appendChild(chartsSection);
+            
+            // Wait for charts to render before converting to canvas
+            await new Promise(resolve => setTimeout(resolve, CHART_RENDER_DELAY));
             
             // Render to canvas with html2canvas (supports Chinese fonts)
             try {
