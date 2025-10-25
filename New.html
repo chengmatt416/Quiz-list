@@ -1898,6 +1898,7 @@
                 ` : ''}
 
                 ${schedulerHtml}
+            `;
 
             // Add section header for review list
             html += `
@@ -2295,17 +2296,17 @@
                 <p style="color:var(--muted);margin-bottom:20px;font-size:14px">選擇一個規劃策略來自動安排你的考卷</p>
 
                 <div style="display:flex;flex-direction:column;gap:12px">
-                    <button id="exp-workload-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                    <button id="exp-workload-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s">
                         <div style="font-weight:bold;font-size:16px;margin-bottom:4px">🔄 工作量平衡規劃</div>
                         <div style="font-size:13px;color:var(--muted)">將所有未完成的考卷均勻分配到指定天數內，確保每天工作量相近</div>
                     </button>
 
-                    <button id="exp-priority-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                    <button id="exp-priority-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s">
                         <div style="font-weight:bold;font-size:16px;margin-bottom:4px">⚡ 優先級規劃</div>
                         <div style="font-size:13px;color:var(--muted)">根據到期日緊急程度自動安排，優先處理即將到期的項目</div>
                     </button>
 
-                    <button id="exp-rotation-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                    <button id="exp-rotation-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s">
                         <div style="font-weight:bold;font-size:16px;margin-bottom:4px">🔀 科目輪替規劃</div>
                         <div style="font-size:13px;color:var(--muted)">交替安排不同科目的考卷，避免單一科目過於密集</div>
                     </button>
@@ -2320,18 +2321,31 @@
             document.body.appendChild(modal);
 
             // Add event listeners after appending to DOM
-            document.getElementById('exp-workload-btn').addEventListener('click', () => {
+            const workloadBtn = document.getElementById('exp-workload-btn');
+            const priorityBtn = document.getElementById('exp-priority-btn');
+            const rotationBtn = document.getElementById('exp-rotation-btn');
+            
+            workloadBtn.addEventListener('click', () => {
                 window.closeExpMenu();
                 experimentalWorkloadBalancing();
             });
-            document.getElementById('exp-priority-btn').addEventListener('click', () => {
+            workloadBtn.addEventListener('mouseover', () => { workloadBtn.style.background='var(--secondary-color)'; });
+            workloadBtn.addEventListener('mouseout', () => { workloadBtn.style.background='var(--container-bg)'; });
+            
+            priorityBtn.addEventListener('click', () => {
                 window.closeExpMenu();
                 experimentalPriorityPlanning();
             });
-            document.getElementById('exp-rotation-btn').addEventListener('click', () => {
+            priorityBtn.addEventListener('mouseover', () => { priorityBtn.style.background='var(--secondary-color)'; });
+            priorityBtn.addEventListener('mouseout', () => { priorityBtn.style.background='var(--container-bg)'; });
+            
+            rotationBtn.addEventListener('click', () => {
                 window.closeExpMenu();
                 experimentalSubjectRotation();
             });
+            rotationBtn.addEventListener('mouseover', () => { rotationBtn.style.background='var(--secondary-color)'; });
+            rotationBtn.addEventListener('mouseout', () => { rotationBtn.style.background='var(--container-bg)'; });
+            
             document.getElementById('exp-menu-close-btn').addEventListener('click', window.closeExpMenu);
         };
 
