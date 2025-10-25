@@ -2,7 +2,7 @@
   "name": "考卷清單管理系統",
   "short_name": "考卷清單",
   "description": "一個功能完整的考卷清單管理系統，具備到期日追蹤、日曆匯出及番茄鐘計時功能",
-  "start_url": "/New.html",
+  "start_url": "/install.html",
   "display": "standalone",
   "background_color": "#f4f7f6",
   "theme_color": "#3498db",

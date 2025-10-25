@@ -270,9 +270,164 @@
                 padding-right: max(20px, env(safe-area-inset-right));
             }
         }
+        
+        /* Passcode Lock Screen */
+        #passcode-lock {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 20px;
+        }
+        
+        #passcode-lock.hidden {
+            display: none;
+        }
+        
+        .passcode-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .passcode-logo {
+            text-align: center;
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        .passcode-title {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .passcode-subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        
+        .passcode-display {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .passcode-dot {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        
+        .passcode-dot.filled {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+        }
+        
+        .passcode-keyboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .passcode-key {
+            aspect-ratio: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            background: white;
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .passcode-key:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+        }
+        
+        .passcode-key:active {
+            transform: scale(0.95);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .passcode-key.backspace {
+            font-size: 20px;
+        }
+        
+        .passcode-error {
+            text-align: center;
+            color: #e74c3c;
+            font-size: 14px;
+            height: 20px;
+            margin-top: 10px;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        .shake {
+            animation: shake 0.4s;
+        }
     </style>
 </head>
 <body>
+    <!-- Passcode Lock Screen -->
+    <div id="passcode-lock">
+        <div class="passcode-container">
+            <div class="passcode-logo">🔒</div>
+            <div class="passcode-title">測試版保護</div>
+            <div class="passcode-subtitle">請輸入密碼以解鎖</div>
+            
+            <div class="passcode-display">
+                <div class="passcode-dot" data-index="0"></div>
+                <div class="passcode-dot" data-index="1"></div>
+                <div class="passcode-dot" data-index="2"></div>
+                <div class="passcode-dot" data-index="3"></div>
+                <div class="passcode-dot" data-index="4"></div>
+                <div class="passcode-dot" data-index="5"></div>
+                <div class="passcode-dot" data-index="6"></div>
+            </div>
+            
+            <div class="passcode-keyboard">
+                <button class="passcode-key" data-key="T">T</button>
+                <button class="passcode-key" data-key="E">E</button>
+                <button class="passcode-key" data-key="S">S</button>
+                <button class="passcode-key" data-key="I">I</button>
+                <button class="passcode-key" data-key="N">N</button>
+                <button class="passcode-key" data-key="G">G</button>
+                <button class="passcode-key" data-key="A">A</button>
+                <button class="passcode-key" data-key="B">B</button>
+                <button class="passcode-key backspace" data-key="BACK">⌫</button>
+            </div>
+            
+            <div class="passcode-error" id="passcode-error"></div>
+        </div>
+    </div>
+    
     <div class="wrap">
         <div class="container">
             <div class="header">
@@ -449,6 +604,97 @@
         const modal = document.getElementById('exp-menu-modal');
         if (modal) modal.remove();
     };
+
+    // ==================== PASSCODE PROTECTION ====================
+    (function() {
+        const CORRECT_PASSCODE = 'TESTING';
+        const passcodeInput = [];
+        const passcodeLock = document.getElementById('passcode-lock');
+        const passcodeError = document.getElementById('passcode-error');
+        const passcodeDots = document.querySelectorAll('.passcode-dot');
+        const passcodeKeys = document.querySelectorAll('.passcode-key');
+        
+        // Check if already unlocked in this session
+        if (sessionStorage.getItem('test_unlocked') === 'true') {
+            passcodeLock.classList.add('hidden');
+            return;
+        }
+        
+        function updateDisplay() {
+            passcodeDots.forEach((dot, index) => {
+                if (index < passcodeInput.length) {
+                    dot.classList.add('filled');
+                } else {
+                    dot.classList.remove('filled');
+                }
+            });
+        }
+        
+        function checkPasscode() {
+            const enteredCode = passcodeInput.join('');
+            if (enteredCode === CORRECT_PASSCODE) {
+                // Correct passcode
+                sessionStorage.setItem('test_unlocked', 'true');
+                passcodeError.textContent = '✓ 解鎖成功！';
+                passcodeError.style.color = '#27ae60';
+                setTimeout(() => {
+                    passcodeLock.classList.add('hidden');
+                }, 500);
+            } else {
+                // Wrong passcode
+                passcodeError.textContent = '密碼錯誤，請重試';
+                passcodeLock.querySelector('.passcode-container').classList.add('shake');
+                setTimeout(() => {
+                    passcodeLock.querySelector('.passcode-container').classList.remove('shake');
+                }, 400);
+                passcodeInput.length = 0;
+                updateDisplay();
+            }
+        }
+        
+        passcodeKeys.forEach(key => {
+            key.addEventListener('click', () => {
+                const keyValue = key.dataset.key;
+                
+                if (keyValue === 'BACK') {
+                    passcodeInput.pop();
+                    passcodeError.textContent = '';
+                } else {
+                    if (passcodeInput.length < CORRECT_PASSCODE.length) {
+                        passcodeInput.push(keyValue);
+                        passcodeError.textContent = '';
+                    }
+                    
+                    if (passcodeInput.length === CORRECT_PASSCODE.length) {
+                        setTimeout(checkPasscode, 300);
+                    }
+                }
+                
+                updateDisplay();
+            });
+        });
+        
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (!passcodeLock.classList.contains('hidden')) {
+                const key = e.key.toUpperCase();
+                if (key === 'BACKSPACE') {
+                    passcodeInput.pop();
+                    passcodeError.textContent = '';
+                    updateDisplay();
+                } else if ('TESTINGABCDEFGHJKLMNOPQRUVWXYZ'.includes(key) && passcodeInput.length < CORRECT_PASSCODE.length) {
+                    passcodeInput.push(key);
+                    passcodeError.textContent = '';
+                    updateDisplay();
+                    
+                    if (passcodeInput.length === CORRECT_PASSCODE.length) {
+                        setTimeout(checkPasscode, 300);
+                    }
+                }
+            }
+        });
+    })();
+    // ==================== END PASSCODE PROTECTION ====================
 
     document.addEventListener('DOMContentLoaded', () => {
 
