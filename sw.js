@@ -1,12 +1,20 @@
 // Service Worker for Quiz List PWA
-const CACHE_NAME = 'quiz-list-v1';
+const CACHE_VERSION = 'v2.0.0'; // Increment this to force update
+const CACHE_NAME = `quiz-list-${CACHE_VERSION}`;
 const urlsToCache = [
   '/New.html',
   '/Test.html',
   '/Old.html',
+  '/install.html',
   '/manifest.json',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://html2canvas.hertzen.com/dist/html2canvas.min.js'
+  '/icon-72x72.png',
+  '/icon-96x96.png',
+  '/icon-128x128.png',
+  '/icon-144x144.png',
+  '/icon-152x152.png',
+  '/icon-192x192.png',
+  '/icon-384x384.png',
+  '/icon-512x512.png'
 ];
 
 // Install event - cache resources
@@ -27,7 +35,7 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and force update
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -39,47 +47,76 @@ self.addEventListener('activate', event => {
           }
         })
       );
+    }).then(() => {
+      // Notify all clients about the update
+      return self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SW_UPDATED',
+            version: CACHE_VERSION
+          });
+        });
+      });
     })
   );
-  // Claim clients immediately
+  // Claim clients immediately to force update
   return self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - Network first for HTML, cache first for assets
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
+  const url = new URL(event.request.url);
+  
+  // For HTML files, try network first for latest content
+  if (event.request.mode === 'navigate' || url.pathname.endsWith('.html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // Clone and cache the response
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
           return response;
-        }
-
-        // Clone the request
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(response => {
-          // Check if valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
+        })
+        .catch(() => {
+          // If network fails, serve from cache
+          return caches.match(event.request).then(response => {
+            return response || caches.match('/New.html');
+          });
+        })
+    );
+  } else {
+    // For other resources, use cache first strategy
+    event.respondWith(
+      caches.match(event.request)
+        .then(response => {
+          if (response) {
             return response;
           }
 
-          // Clone the response
-          const responseToCache = response.clone();
+          const fetchRequest = event.request.clone();
+          return fetch(fetchRequest).then(response => {
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
 
-          caches.open(CACHE_NAME)
-            .then(cache => {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
               cache.put(event.request, responseToCache);
             });
 
-          return response;
-        }).catch(error => {
-          console.error('Fetch failed:', error);
-          // Return a custom offline page if available
-          return caches.match('/New.html');
-        });
-      })
-  );
+            return response;
+          }).catch(error => {
+            console.error('Fetch failed:', error);
+            return new Response('Offline - resource not available', {
+              status: 503,
+              statusText: 'Service Unavailable'
+            });
+          });
+        })
+    );
+  }
 });
 
 // Handle background sync for data updates
@@ -115,4 +152,18 @@ self.addEventListener('notificationclick', event => {
   event.waitUntil(
     clients.openWindow('/New.html')
   );
+});
+
+// Listen for messages from clients
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.ports[0].postMessage({
+      type: 'VERSION',
+      version: CACHE_VERSION
+    });
+  }
 });

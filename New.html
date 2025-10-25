@@ -2408,23 +2408,31 @@
                 // some browsers require resume by user gesture; try to resume
                 ctx.resume().catch(()=>{});
             }
-            // Continuous beeps - play 5 beeps with pauses
+            
+            // Real continuous beep - 10 beeps over 5 seconds for better alert
             const now = ctx.currentTime;
-            for(let i = 0; i < 5; i++){
-                const beepStart = now + (i * 0.5);
+            const beepCount = 10;
+            const totalDuration = 5;
+            const beepInterval = totalDuration / beepCount;
+            
+            for(let i = 0; i < beepCount; i++){
+                const beepStart = now + (i * beepInterval);
                 const o = ctx.createOscillator();
                 const g = ctx.createGain();
                 o.type = 'sine';
-                o.frequency.value = 880;
+                o.frequency.value = 880; // A5 note
                 o.connect(g);
                 g.connect(ctx.destination);
+                
+                // Louder and more noticeable beep
                 g.gain.setValueAtTime(0.001, beepStart);
-                g.gain.exponentialRampToValueAtTime(0.18, beepStart + 0.02);
+                g.gain.exponentialRampToValueAtTime(0.3, beepStart + 0.02);
                 o.start(beepStart);
-                g.gain.exponentialRampToValueAtTime(0.0001, beepStart + 0.35);
-                o.stop(beepStart + 0.36);
+                g.gain.exponentialRampToValueAtTime(0.001, beepStart + 0.25);
+                o.stop(beepStart + 0.26);
             }
         }
+
 
         function selectPomodoroExam(id){
             const exam = exams.find(e => e.id === id);
@@ -3243,22 +3251,112 @@
 
     });
 
-    // Register Service Worker for PWA support
+    // ==================== PWA UPDATE & INSTALL HANDLING ====================
+    
+    // Force install gate for mobile users
+    (function() {
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const hasSkipped = localStorage.getItem('pwa_install_skipped') === 'true';
+        const isInstalled = localStorage.getItem('pwa_installed') === 'true';
+        
+        // Redirect mobile users to install page if not installed
+        if (isMobile && !isStandalone && !isInstalled && !hasSkipped) {
+            // Don't redirect if we're on the install page already
+            if (!window.location.pathname.includes('install.html')) {
+                window.location.href = '/install.html';
+            }
+        }
+    })();
+    
+    // Register Service Worker for PWA support with update detection
     if ('serviceWorker' in navigator) {
+        let registration;
+        let refreshing = false;
+        
+        // Listen for controller change and reload
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            refreshing = true;
+            
+            // Show update notification to user
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            if (isAndroid) {
+                // Force reload for Android users
+                if (confirm('新版本已可用！應用程式將立即更新以獲得最新功能。')) {
+                    window.location.reload();
+                }
+            } else {
+                // Optional reload for other platforms
+                if (confirm('新版本已可用！是否重新載入以更新？')) {
+                    window.location.reload();
+                }
+            }
+        });
+        
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/sw.js')
-                .then(registration => {
-                    console.log('ServiceWorker registered: ', registration);
+                .then(reg => {
+                    registration = reg;
+                    console.log('ServiceWorker registered: ', reg);
 
+                    // Check for updates when page becomes visible
+                    document.addEventListener('visibilitychange', () => {
+                        if (!document.hidden && registration) {
+                            registration.update();
+                        }
+                    });
+                    
                     // Check for updates periodically
                     setInterval(() => {
-                        registration.update();
+                        if (registration) {
+                            registration.update();
+                        }
                     }, 60000); // Check every minute
+                    
+                    // Listen for waiting service worker
+                    if (reg.waiting) {
+                        showUpdatePrompt(reg.waiting);
+                    }
+                    
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                showUpdatePrompt(newWorker);
+                            }
+                        });
+                    });
                 })
                 .catch(error => {
                     console.log('ServiceWorker registration failed: ', error);
                 });
         });
+        
+        // Listen for SW messages
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data && event.data.type === 'SW_UPDATED') {
+                console.log('Service Worker updated to version:', event.data.version);
+                const isAndroid = /Android/i.test(navigator.userAgent);
+                if (isAndroid) {
+                    // Force update for Android
+                    if (confirm('應用程式已更新到新版本！請重新載入以套用更新。')) {
+                        window.location.reload();
+                    }
+                }
+            }
+        });
+        
+        function showUpdatePrompt(worker) {
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const message = isAndroid 
+                ? '新版本已可用！應用程式將立即更新。' 
+                : '新版本已可用！是否立即更新？';
+            
+            if (confirm(message)) {
+                worker.postMessage({ type: 'SKIP_WAITING' });
+            }
+        }
     }
 
     // Prompt for installation (A2HS - Add to Home Screen)
