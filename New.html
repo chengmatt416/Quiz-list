@@ -608,17 +608,27 @@
                 <strong>番茄鐘</strong>
                 <span id="pom-selected" class="small muted">（尚未選擇考卷）</span>
             </div>
-            <div style="display:flex;gap:6px;align-items:center">
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
                 <select id="pom-mode" class="small">
                     <option value="pom">工作（番茄）</option>
                     <option value="short">短休</option>
                     <option value="long">長休</option>
+                    <option value="manual">手動計時</option>
                 </select>
                 <button type="button" id="pom-close" class="pom-close-btn" title="隱藏">&times;</button>
                 <button type="button" id="pom-start">開始</button>
             </div>
         </div>
         <div class="timer-display" id="timer-display">25:00</div>
+        <div id="manual-timer-input" style="display:none;margin:10px 0;text-align:center">
+            <label class="small muted">手動設定時間：</label>
+            <div style="display:flex;gap:8px;justify-content:center;margin-top:8px">
+                <input type="number" id="manual-minutes" min="0" max="999" value="25" style="width:60px;padding:4px;border-radius:6px;border:1px solid var(--border-color);background:var(--container-bg);color:var(--text-color);text-align:center" placeholder="分">
+                <span style="line-height:28px">:</span>
+                <input type="number" id="manual-seconds" min="0" max="59" value="0" style="width:60px;padding:4px;border-radius:6px;border:1px solid var(--border-color);background:var(--container-bg);color:var(--text-color);text-align:center" placeholder="秒">
+                <button type="button" id="set-manual-time" style="padding:4px 12px;border-radius:6px;border:none;background:var(--primary-color);color:white;cursor:pointer">設定</button>
+            </div>
+        </div>
         <div class="pom-controls">
             <button type="button" id="pom-pause" class="theme-toggle">暫停</button>
             <button type="button" id="pom-reset" class="theme-toggle">重設</button>
@@ -627,10 +637,11 @@
             <div class="small muted">週期</div>
             <div id="pom-cycle" class="cycle-indicator"></div>
         </div>
-        <div style="margin-top:10px;display:flex;justify-content:center;gap:8px;align-items:center">
+        <div style="margin-top:10px;display:flex;justify-content:center;gap:8px;align-items:center;flex-wrap:wrap">
             <label class="small muted" style="display:flex;align-items:center;gap:6px">
                 <input type="checkbox" id="pom-enable-sound"> 啟用音效
             </label>
+            <button type="button" id="test-sound" class="icon-btn" style="padding:4px 10px;font-size:12px;background:#27ae60">測試音效</button>
         </div>
     </div>
 
@@ -2385,30 +2396,65 @@
 
         // Pomodoro
         const pom = {
-            durations: { pom:25*60, short:5*60, long:15*60 },
+            durations: { pom:25*60, short:5*60, long:15*60, manual:25*60 },
             timerId: null, remaining: 25*60, running: false, selectedExamId: null, cycles: 0,
         };
 
         // WebAudio setup for beep
         let audioCtx = null;
+        let audioInitialized = false;
+        
         function ensureAudioContext(){
             if(audioCtx) return audioCtx;
             try{
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                console.log('AudioContext created, state:', audioCtx.state);
             }catch(e){
+                console.error('Failed to create AudioContext:', e);
                 audioCtx = null;
             }
             return audioCtx;
         }
-        function playBeep(){
-            if(!G.pom.enableSound.checked) return;
+        
+        function initAudioOnInteraction(){
+            if(audioInitialized) return;
             const ctx = ensureAudioContext();
             if(!ctx) return;
+            
             if (ctx.state === 'suspended') {
-                // some browsers require resume by user gesture; try to resume
-                ctx.resume().catch(()=>{});
+                ctx.resume().then(() => {
+                    console.log('AudioContext resumed successfully');
+                    audioInitialized = true;
+                }).catch(err => {
+                    console.error('Failed to resume AudioContext:', err);
+                });
+            } else {
+                audioInitialized = true;
+            }
+        }
+        
+        function playBeep(){
+            if(!G.pom.enableSound.checked) return;
+            
+            const ctx = ensureAudioContext();
+            if(!ctx) {
+                console.error('AudioContext not available');
+                return;
             }
             
+            // Ensure context is resumed
+            if (ctx.state === 'suspended') {
+                ctx.resume().then(() => {
+                    playBeepSound(ctx);
+                }).catch(err => {
+                    console.error('Failed to resume AudioContext for beep:', err);
+                });
+            } else {
+                playBeepSound(ctx);
+            }
+        }
+        
+        function playBeepSound(ctx){
             // Real continuous beep - 10 beeps over 5 seconds for better alert
             const now = ctx.currentTime;
             const beepCount = 10;
@@ -2453,6 +2499,10 @@
         }
         function startPomodoro(){
             if(pom.timerId) return;
+            
+            // Initialize audio on first start (user interaction)
+            initAudioOnInteraction();
+            
             pom.running = true;
             const mode = G.pom.mode.value;
             if(pom.remaining <= 0) pom.remaining = pom.durations[mode];
@@ -2483,8 +2533,71 @@
         G.pom.pause.addEventListener('click', pausePomodoro);
         G.pom.reset.addEventListener('click', resetPomodoro);
         G.pom.mode.addEventListener('change', () => {
-            pom.remaining = pom.durations[G.pom.mode.value]; updateTimerDisplay();
+            const mode = G.pom.mode.value;
+            const manualInput = document.getElementById('manual-timer-input');
+            
+            // Show/hide manual timer input
+            if(mode === 'manual'){
+                if(manualInput) manualInput.style.display = 'block';
+            } else {
+                if(manualInput) manualInput.style.display = 'none';
+                pom.remaining = pom.durations[mode]; 
+                updateTimerDisplay();
+            }
         });
+        
+        // Manual timer set button
+        const setManualTimeBtn = document.getElementById('set-manual-time');
+        if(setManualTimeBtn){
+            setManualTimeBtn.addEventListener('click', () => {
+                const minutes = parseInt(document.getElementById('manual-minutes').value) || 0;
+                const seconds = parseInt(document.getElementById('manual-seconds').value) || 0;
+                const totalSeconds = (minutes * 60) + seconds;
+                
+                if(totalSeconds <= 0){
+                    alert('請輸入有效的時間（大於 0 秒）');
+                    return;
+                }
+                
+                if(totalSeconds > 59999){ // Max ~999 minutes
+                    alert('時間過長，請輸入較小的值');
+                    return;
+                }
+                
+                pom.durations.manual = totalSeconds;
+                pom.remaining = totalSeconds;
+                updateTimerDisplay();
+                alert(`已設定手動計時器為 ${minutes} 分 ${seconds} 秒`);
+            });
+        }
+        
+        // Test sound button
+        const testSoundBtn = document.getElementById('test-sound');
+        if(testSoundBtn){
+            testSoundBtn.addEventListener('click', () => {
+                initAudioOnInteraction();
+                
+                // Force enable sound for test
+                const wasEnabled = G.pom.enableSound.checked;
+                G.pom.enableSound.checked = true;
+                
+                playBeep();
+                
+                // Show feedback
+                testSoundBtn.textContent = '播放中...';
+                setTimeout(() => {
+                    testSoundBtn.textContent = '測試音效';
+                    if(!wasEnabled) {
+                        // Ask if they want to keep sound enabled
+                        if(confirm('音效測試完成。是否保持音效啟用？')){
+                            G.pom.enableSound.checked = true;
+                        } else {
+                            G.pom.enableSound.checked = false;
+                        }
+                    }
+                }, 5500);
+            });
+        }
         function renderCycleDots(){
             const container = G.pom.cycle; container.innerHTML = '';
             for(let i=0;i<4;i++){
@@ -2524,27 +2637,46 @@
         function togglePomFullscreen(){
             if(pomFsContainer.style.display === 'none' || pomFsContainer.style.display === ''){
                 // open
+                const currentMode = G.pom.mode.value;
+                const isManualMode = currentMode === 'manual';
+                
                 pomFsContainer.style.display = 'block';
                 pomFsContainer.innerHTML = `
                 <div class="pom-fullscreen" id="pomfs-outer">
                     <div class="pom-inner">
-                        <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
                             <strong style="font-size:22px">番茄鐘（全螢幕）</strong>
-                            <div>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <select id="pomfs-mode" class="small" style="padding:6px;border-radius:6px;border:1px solid var(--border-color);background:var(--container-bg);color:var(--text-color)">
+                                    <option value="pom" ${currentMode === 'pom' ? 'selected' : ''}>工作（番茄）</option>
+                                    <option value="short" ${currentMode === 'short' ? 'selected' : ''}>短休</option>
+                                    <option value="long" ${currentMode === 'long' ? 'selected' : ''}>長休</option>
+                                    <option value="manual" ${currentMode === 'manual' ? 'selected' : ''}>手動計時</option>
+                                </select>
                                 <button id="pomfs-close" style="margin-right:8px" class="theme-toggle">關閉</button>
                                 <button type="button" id="pomfs-start" class="icon-btn">開始</button>
                             </div>
                         </div>
                         <div style="margin-top:20px">
                             <div id="pomfs-display" class="timer-display">25:00</div>
+                            <div id="pomfs-manual-input" style="display:${isManualMode ? 'block' : 'none'};margin:16px 0;text-align:center">
+                                <label class="small muted">手動設定時間：</label>
+                                <div style="display:flex;gap:12px;justify-content:center;margin-top:12px">
+                                    <input type="number" id="pomfs-manual-minutes" min="0" max="999" value="25" style="width:80px;padding:8px;font-size:18px;border-radius:8px;border:1px solid var(--border-color);background:var(--container-bg);color:var(--text-color);text-align:center" placeholder="分">
+                                    <span style="line-height:40px;font-size:20px">:</span>
+                                    <input type="number" id="pomfs-manual-seconds" min="0" max="59" value="0" style="width:80px;padding:8px;font-size:18px;border-radius:8px;border:1px solid var(--border-color);background:var(--container-bg);color:var(--text-color);text-align:center" placeholder="秒">
+                                    <button type="button" id="pomfs-set-manual" style="padding:8px 16px;border-radius:8px;border:none;background:var(--primary-color);color:white;cursor:pointer;font-size:16px">設定</button>
+                                </div>
+                            </div>
                             <div style="margin-top:12px">
                                 <button type="button" id="pomfs-pause" class="theme-toggle">暫停/繼續</button>
                                 <button type="button" id="pomfs-reset" class="theme-toggle">重設</button>
                             </div>
-                            <div style="margin-top:12px">
-                                <label class="small muted" style="display:flex;align-items:center;gap:8px;justify-content:center">
+                            <div style="margin-top:12px;display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap">
+                                <label class="small muted" style="display:flex;align-items:center;gap:8px">
                                     <input type="checkbox" id="pomfs-enable-sound"> 啟用音效
                                 </label>
+                                <button type="button" id="pomfs-test-sound" class="icon-btn" style="padding:6px 14px;font-size:14px;background:#27ae60">測試音效</button>
                             </div>
                         </div>
                     </div>
@@ -2566,6 +2698,78 @@
                 document.getElementById('pomfs-reset').addEventListener('click', () => {
                     resetPomodoro();
                 });
+                
+                // Mode selector in fullscreen
+                document.getElementById('pomfs-mode').addEventListener('change', (e) => {
+                    const mode = e.target.value;
+                    G.pom.mode.value = mode;
+                    
+                    const fsManualInput = document.getElementById('pomfs-manual-input');
+                    if(mode === 'manual'){
+                        if(fsManualInput) fsManualInput.style.display = 'block';
+                    } else {
+                        if(fsManualInput) fsManualInput.style.display = 'none';
+                        pom.remaining = pom.durations[mode];
+                        updateTimerDisplay();
+                    }
+                });
+                
+                // Manual timer in fullscreen
+                const pomfsSetManual = document.getElementById('pomfs-set-manual');
+                if(pomfsSetManual){
+                    pomfsSetManual.addEventListener('click', () => {
+                        const minutes = parseInt(document.getElementById('pomfs-manual-minutes').value) || 0;
+                        const seconds = parseInt(document.getElementById('pomfs-manual-seconds').value) || 0;
+                        const totalSeconds = (minutes * 60) + seconds;
+                        
+                        if(totalSeconds <= 0){
+                            alert('請輸入有效的時間（大於 0 秒）');
+                            return;
+                        }
+                        
+                        if(totalSeconds > 59999){
+                            alert('時間過長，請輸入較小的值');
+                            return;
+                        }
+                        
+                        pom.durations.manual = totalSeconds;
+                        pom.remaining = totalSeconds;
+                        updateTimerDisplay();
+                        
+                        // Sync with main panel
+                        document.getElementById('manual-minutes').value = minutes;
+                        document.getElementById('manual-seconds').value = seconds;
+                        
+                        alert(`已設定手動計時器為 ${minutes} 分 ${seconds} 秒`);
+                    });
+                }
+                
+                // Test sound in fullscreen
+                const pomfsTestSound = document.getElementById('pomfs-test-sound');
+                if(pomfsTestSound){
+                    pomfsTestSound.addEventListener('click', () => {
+                        initAudioOnInteraction();
+                        
+                        const wasEnabled = G.pom.enableSound.checked;
+                        G.pom.enableSound.checked = true;
+                        
+                        playBeep();
+                        
+                        pomfsTestSound.textContent = '播放中...';
+                        setTimeout(() => {
+                            pomfsTestSound.textContent = '測試音效';
+                            if(!wasEnabled) {
+                                if(confirm('音效測試完成。是否保持音效啟用？')){
+                                    G.pom.enableSound.checked = true;
+                                    document.getElementById('pomfs-enable-sound').checked = true;
+                                } else {
+                                    G.pom.enableSound.checked = false;
+                                    document.getElementById('pomfs-enable-sound').checked = false;
+                                }
+                            }
+                        }, 5500);
+                    });
+                }
                 // reflect display
                 const fsDisplay = document.getElementById('pomfs-display');
                 const fsInterval = setInterval(()=> {

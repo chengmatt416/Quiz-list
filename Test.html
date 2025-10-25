@@ -413,14 +413,32 @@
             </div>
             
             <div class="passcode-keyboard">
-                <button class="passcode-key" data-key="T">T</button>
-                <button class="passcode-key" data-key="E">E</button>
-                <button class="passcode-key" data-key="S">S</button>
-                <button class="passcode-key" data-key="I">I</button>
-                <button class="passcode-key" data-key="N">N</button>
-                <button class="passcode-key" data-key="G">G</button>
                 <button class="passcode-key" data-key="A">A</button>
                 <button class="passcode-key" data-key="B">B</button>
+                <button class="passcode-key" data-key="C">C</button>
+                <button class="passcode-key" data-key="D">D</button>
+                <button class="passcode-key" data-key="E">E</button>
+                <button class="passcode-key" data-key="F">F</button>
+                <button class="passcode-key" data-key="G">G</button>
+                <button class="passcode-key" data-key="H">H</button>
+                <button class="passcode-key" data-key="I">I</button>
+                <button class="passcode-key" data-key="J">J</button>
+                <button class="passcode-key" data-key="K">K</button>
+                <button class="passcode-key" data-key="L">L</button>
+                <button class="passcode-key" data-key="M">M</button>
+                <button class="passcode-key" data-key="N">N</button>
+                <button class="passcode-key" data-key="O">O</button>
+                <button class="passcode-key" data-key="P">P</button>
+                <button class="passcode-key" data-key="Q">Q</button>
+                <button class="passcode-key" data-key="R">R</button>
+                <button class="passcode-key" data-key="S">S</button>
+                <button class="passcode-key" data-key="T">T</button>
+                <button class="passcode-key" data-key="U">U</button>
+                <button class="passcode-key" data-key="V">V</button>
+                <button class="passcode-key" data-key="W">W</button>
+                <button class="passcode-key" data-key="X">X</button>
+                <button class="passcode-key" data-key="Y">Y</button>
+                <button class="passcode-key" data-key="Z">Z</button>
                 <button class="passcode-key backspace" data-key="BACK">⌫</button>
             </div>
             
@@ -1862,6 +1880,428 @@
             showPlanPreview(changes, '🔀 科目輪替規劃');
         }
 
+        // NEW EXPERIMENTAL FUNCTION 4: Difficulty-based planning - easy to hard progression
+        function experimentalDifficultyProgression() {
+            const incomplete = exams.filter(e => !e.completed);
+            if (incomplete.length === 0) {
+                alert('沒有未完成的考卷可以規劃');
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Sort by question count (easier first - fewer questions)
+            const sorted = [...incomplete].sort((a, b) => a.questions - b.questions);
+            const changes = [];
+
+            sorted.forEach((exam, index) => {
+                const planDate = new Date(today);
+                planDate.setDate(planDate.getDate() + index);
+
+                changes.push({
+                    id: exam.id,
+                    subject: exam.subject,
+                    chapter: exam.chapter,
+                    oldDate: exam.dueDate,
+                    newDate: formatDate(planDate),
+                    srsLevel: exam.srsLevel || 0,
+                    reason: `難度漸進 - 第 ${index + 1} 天 (${exam.questions} 題)`,
+                    type: 'difficulty'
+                });
+            });
+
+            showPlanPreview(changes, '📈 難度漸進規劃');
+        }
+
+        // NEW EXPERIMENTAL FUNCTION 5: Weekend-focused planning
+        function experimentalWeekendFocus() {
+            const incomplete = exams.filter(e => !e.completed);
+            if (incomplete.length === 0) {
+                alert('沒有未完成的考卷可以規劃');
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Find next weekend
+            let nextSaturday = new Date(today);
+            while (nextSaturday.getDay() !== 6) {
+                nextSaturday.setDate(nextSaturday.getDate() + 1);
+            }
+
+            const changes = [];
+            let weekendCount = 0;
+
+            incomplete.forEach((exam, index) => {
+                const targetWeekend = new Date(nextSaturday);
+                targetWeekend.setDate(targetWeekend.getDate() + (weekendCount * 7));
+                
+                // Alternate between Saturday and Sunday
+                if (index % 2 === 1) {
+                    targetWeekend.setDate(targetWeekend.getDate() + 1);
+                }
+
+                changes.push({
+                    id: exam.id,
+                    subject: exam.subject,
+                    chapter: exam.chapter,
+                    oldDate: exam.dueDate,
+                    newDate: formatDate(targetWeekend),
+                    srsLevel: exam.srsLevel || 0,
+                    reason: `週末集中 - ${targetWeekend.getDay() === 6 ? '六' : '日'}`,
+                    type: 'weekend'
+                });
+
+                if (index % 2 === 1) weekendCount++;
+            });
+
+            showPlanPreview(changes, '🏖️ 週末集中規劃');
+        }
+
+        // NEW EXPERIMENTAL FUNCTION 6: Pomodoro-based planning (daily capacity)
+        function experimentalPomodoroPlanning() {
+            const incomplete = exams.filter(e => !e.completed);
+            if (incomplete.length === 0) {
+                alert('沒有未完成的考卷可以規劃');
+                return;
+            }
+
+            const pomodorosPerDay = parseInt(prompt('每日可用番茄鐘數量（1番茄鐘 ≈ 10題）:', '6'));
+            if (!pomodorosPerDay || pomodorosPerDay < 1) return;
+
+            const questionsPerDay = pomodorosPerDay * 10;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const sorted = [...incomplete].sort((a, b) => a.questions - b.questions);
+            const changes = [];
+            let currentDay = 0;
+            let currentDayQuestions = 0;
+
+            sorted.forEach(exam => {
+                if (currentDayQuestions + exam.questions > questionsPerDay && currentDay < 90) {
+                    currentDay++;
+                    currentDayQuestions = 0;
+                }
+
+                const planDate = new Date(today);
+                planDate.setDate(planDate.getDate() + currentDay);
+
+                const pomodoros = Math.ceil(exam.questions / 10);
+                changes.push({
+                    id: exam.id,
+                    subject: exam.subject,
+                    chapter: exam.chapter,
+                    oldDate: exam.dueDate,
+                    newDate: formatDate(planDate),
+                    srsLevel: exam.srsLevel || 0,
+                    reason: `番茄鐘規劃 - 第 ${currentDay + 1} 天 (${pomodoros} 🍅)`,
+                    type: 'pomodoro'
+                });
+
+                currentDayQuestions += exam.questions;
+            });
+
+            showPlanPreview(changes, '🍅 番茄鐘規劃');
+        }
+
+        // NEW EXPERIMENTAL FUNCTION 7: Energy-based planning (morning/evening)
+        function experimentalEnergyPlanning() {
+            const incomplete = exams.filter(e => !e.completed);
+            if (incomplete.length === 0) {
+                alert('沒有未完成的考卷可以規劃');
+                return;
+            }
+
+            const preference = confirm('點擊「確定」選擇早晨高效，點擊「取消」選擇晚上高效');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Sort by difficulty (question count)
+            const sorted = [...incomplete].sort((a, b) => b.questions - a.questions);
+            const changes = [];
+
+            sorted.forEach((exam, index) => {
+                const planDate = new Date(today);
+                planDate.setDate(planDate.getDate() + Math.floor(index / 2));
+
+                const timeOfDay = preference ? '早晨' : '晚上';
+                changes.push({
+                    id: exam.id,
+                    subject: exam.subject,
+                    chapter: exam.chapter,
+                    oldDate: exam.dueDate,
+                    newDate: formatDate(planDate),
+                    srsLevel: exam.srsLevel || 0,
+                    reason: `能量規劃 - ${timeOfDay}高效 (${exam.questions} 題)`,
+                    type: 'energy'
+                });
+            });
+
+            showPlanPreview(changes, `⚡ 能量規劃 (${preference ? '早晨' : '晚上'}模式)`);
+        }
+
+        // NEW EXPERIMENTAL FUNCTION 8: Cluster by topic
+        function experimentalTopicClustering() {
+            const incomplete = exams.filter(e => !e.completed);
+            if (incomplete.length === 0) {
+                alert('沒有未完成的考卷可以規劃');
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Group by subject
+            const bySubject = {};
+            incomplete.forEach(exam => {
+                if (!bySubject[exam.subject]) bySubject[exam.subject] = [];
+                bySubject[exam.subject].push(exam);
+            });
+
+            const changes = [];
+            let dayOffset = 0;
+
+            Object.keys(bySubject).sort().forEach(subject => {
+                const subjectExams = bySubject[subject];
+                
+                subjectExams.forEach((exam, idx) => {
+                    const planDate = new Date(today);
+                    planDate.setDate(planDate.getDate() + dayOffset);
+
+                    changes.push({
+                        id: exam.id,
+                        subject: exam.subject,
+                        chapter: exam.chapter,
+                        oldDate: exam.dueDate,
+                        newDate: formatDate(planDate),
+                        srsLevel: exam.srsLevel || 0,
+                        reason: `主題集中 - ${subject} (${idx + 1}/${subjectExams.length})`,
+                        type: 'cluster'
+                    });
+
+                    dayOffset++;
+                });
+            });
+
+            showPlanPreview(changes, '📚 主題集中規劃');
+        }
+
+        // NEW EXPERIMENTAL FUNCTION 9: Spaced repetition optimization
+        function experimentalSpacedRepetition() {
+            const incomplete = exams.filter(e => !e.completed);
+            if (incomplete.length === 0) {
+                alert('沒有未完成的考卷可以規劃');
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Fibonacci-like spacing: 1, 2, 3, 5, 8, 13 days apart
+            const spacingPattern = [1, 2, 3, 5, 8, 13];
+            const changes = [];
+            let totalDays = 0;
+
+            incomplete.forEach((exam, index) => {
+                const spacing = spacingPattern[index % spacingPattern.length];
+                totalDays += spacing;
+
+                const planDate = new Date(today);
+                planDate.setDate(planDate.getDate() + totalDays);
+
+                changes.push({
+                    id: exam.id,
+                    subject: exam.subject,
+                    chapter: exam.chapter,
+                    oldDate: exam.dueDate,
+                    newDate: formatDate(planDate),
+                    srsLevel: exam.srsLevel || 0,
+                    reason: `間隔重複 - ${spacing} 天間隔`,
+                    type: 'spaced'
+                });
+            });
+
+            showPlanPreview(changes, '🧠 間隔重複規劃');
+        }
+
+        // NEW EXPERIMENTAL FUNCTION 10: Reverse chronological (latest first)
+        function experimentalReverseChronological() {
+            const incomplete = exams.filter(e => !e.completed && e.dueDate);
+            if (incomplete.length === 0) {
+                alert('沒有未完成且有到期日的考卷可以規劃');
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Sort by due date, latest first
+            const sorted = [...incomplete].sort((a, b) => {
+                const dateA = new Date(a.dueDate);
+                const dateB = new Date(b.dueDate);
+                return dateB - dateA;
+            });
+
+            const changes = [];
+
+            sorted.forEach((exam, index) => {
+                const planDate = new Date(today);
+                planDate.setDate(planDate.getDate() + index);
+
+                changes.push({
+                    id: exam.id,
+                    subject: exam.subject,
+                    chapter: exam.chapter,
+                    oldDate: exam.dueDate,
+                    newDate: formatDate(planDate),
+                    srsLevel: exam.srsLevel || 0,
+                    reason: `反向排程 - 從最晚到期開始`,
+                    type: 'reverse'
+                });
+            });
+
+            showPlanPreview(changes, '🔄 反向時序規劃');
+        }
+
+        // NEW EXPERIMENTAL FUNCTION 11: Random shuffle planning
+        function experimentalRandomShuffle() {
+            const incomplete = exams.filter(e => !e.completed);
+            if (incomplete.length === 0) {
+                alert('沒有未完成的考卷可以規劃');
+                return;
+            }
+
+            if (!confirm('隨機打亂所有考卷順序，避免固定模式。確定嗎？')) return;
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Shuffle array
+            const shuffled = [...incomplete].sort(() => Math.random() - 0.5);
+            const changes = [];
+
+            shuffled.forEach((exam, index) => {
+                const planDate = new Date(today);
+                planDate.setDate(planDate.getDate() + index);
+
+                changes.push({
+                    id: exam.id,
+                    subject: exam.subject,
+                    chapter: exam.chapter,
+                    oldDate: exam.dueDate,
+                    newDate: formatDate(planDate),
+                    srsLevel: exam.srsLevel || 0,
+                    reason: `隨機順序 - 第 ${index + 1} 天`,
+                    type: 'random'
+                });
+            });
+
+            showPlanPreview(changes, '🎲 隨機打亂規劃');
+        }
+
+        // NEW EXPERIMENTAL FUNCTION 12: Alternating subject pairs
+        function experimentalAlternatingPairs() {
+            const incomplete = exams.filter(e => !e.completed);
+            if (incomplete.length === 0) {
+                alert('沒有未完成的考卷可以規劃');
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Group by subject
+            const bySubject = {};
+            incomplete.forEach(exam => {
+                if (!bySubject[exam.subject]) bySubject[exam.subject] = [];
+                bySubject[exam.subject].push(exam);
+            });
+
+            const subjects = Object.keys(bySubject);
+            const changes = [];
+            let dayOffset = 0;
+
+            // Take 2 from each subject in rotation
+            let hasMore = true;
+            while (hasMore) {
+                hasMore = false;
+
+                for (const subject of subjects) {
+                    const examsInSubject = bySubject[subject];
+                    
+                    for (let i = 0; i < 2 && examsInSubject.length > 0; i++) {
+                        hasMore = true;
+                        const exam = examsInSubject.shift();
+
+                        const planDate = new Date(today);
+                        planDate.setDate(planDate.getDate() + dayOffset);
+
+                        changes.push({
+                            id: exam.id,
+                            subject: exam.subject,
+                            chapter: exam.chapter,
+                            oldDate: exam.dueDate,
+                            newDate: formatDate(planDate),
+                            srsLevel: exam.srsLevel || 0,
+                            reason: `配對輪替 - ${subject} (${i + 1}/2)`,
+                            type: 'pairs'
+                        });
+
+                        dayOffset++;
+                    }
+                }
+            }
+
+            showPlanPreview(changes, '👥 配對輪替規劃');
+        }
+
+        // NEW EXPERIMENTAL FUNCTION 13: Adaptive difficulty - based on SRS levels
+        function experimentalAdaptiveDifficulty() {
+            const incomplete = exams.filter(e => !e.completed);
+            if (incomplete.length === 0) {
+                alert('沒有未完成的考卷可以規劃');
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Sort by SRS level (lower = more difficult, schedule earlier)
+            const sorted = [...incomplete].sort((a, b) => {
+                const levelA = a.srsLevel || 0;
+                const levelB = b.srsLevel || 0;
+                if (levelA !== levelB) return levelA - levelB;
+                return b.questions - a.questions; // Then by question count
+            });
+
+            const changes = [];
+
+            sorted.forEach((exam, index) => {
+                const planDate = new Date(today);
+                const srsLevel = exam.srsLevel || 0;
+                
+                // Earlier scheduling for lower SRS levels
+                const dayMultiplier = srsLevel === 0 ? 1 : srsLevel;
+                planDate.setDate(planDate.getDate() + Math.floor(index / dayMultiplier));
+
+                changes.push({
+                    id: exam.id,
+                    subject: exam.subject,
+                    chapter: exam.chapter,
+                    oldDate: exam.dueDate,
+                    newDate: formatDate(planDate),
+                    srsLevel: exam.srsLevel || 0,
+                    reason: `自適應難度 - SRS ${srsLevel} (優先度: ${index + 1})`,
+                    type: 'adaptive'
+                });
+            });
+
+            showPlanPreview(changes, '🎯 自適應難度規劃');
+        }
+
         // Generic plan preview function
         function showPlanPreview(changes, title) {
             if (changes.length === 0) {
@@ -1961,23 +2401,73 @@
             content.style.cssText = 'background:var(--container-bg);padding:24px;border-radius:12px;max-width:600px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,0.3)';
 
             content.innerHTML = `
-                <h2 style="margin:0 0 16px 0;color:var(--header-color)">🧪 實驗性自動規劃功能</h2>
+                <h2 style="margin:0 0 16px 0;color:var(--header-color)">🧪 實驗性自動規劃功能 (13種策略)</h2>
                 <p style="color:var(--muted);margin-bottom:20px;font-size:14px">選擇一個規劃策略來自動安排你的考卷</p>
 
-                <div style="display:flex;flex-direction:column;gap:12px">
-                    <button id="exp-workload-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
-                        <div style="font-weight:bold;font-size:16px;margin-bottom:4px">🔄 工作量平衡規劃</div>
-                        <div style="font-size:13px;color:var(--muted)">將所有未完成的考卷均勻分配到指定天數內，確保每天工作量相近</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-height:70vh;overflow-y:auto;padding:4px">
+                    <button id="exp-workload-btn" style="padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">🔄 工作量平衡</div>
+                        <div style="font-size:12px;color:var(--muted)">均勻分配工作量</div>
                     </button>
 
-                    <button id="exp-priority-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
-                        <div style="font-weight:bold;font-size:16px;margin-bottom:4px">⚡ 優先級規劃</div>
-                        <div style="font-size:13px;color:var(--muted)">根據到期日緊急程度自動安排，優先處理即將到期的項目</div>
+                    <button id="exp-priority-btn" style="padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">⚡ 優先級規劃</div>
+                        <div style="font-size:12px;color:var(--muted)">緊急項目優先</div>
                     </button>
 
-                    <button id="exp-rotation-btn" style="padding:16px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
-                        <div style="font-weight:bold;font-size:16px;margin-bottom:4px">🔀 科目輪替規劃</div>
-                        <div style="font-size:13px;color:var(--muted)">交替安排不同科目的考卷，避免單一科目過於密集</div>
+                    <button id="exp-rotation-btn" style="padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">🔀 科目輪替</div>
+                        <div style="font-size:12px;color:var(--muted)">避免單科密集</div>
+                    </button>
+
+                    <button id="exp-difficulty-btn" style="padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">📈 難度漸進</div>
+                        <div style="font-size:12px;color:var(--muted)">從易到難安排</div>
+                    </button>
+
+                    <button id="exp-weekend-btn" style="padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">🏖️ 週末集中</div>
+                        <div style="font-size:12px;color:var(--muted)">週末完成任務</div>
+                    </button>
+
+                    <button id="exp-pomodoro-btn" style="padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">🍅 番茄鐘規劃</div>
+                        <div style="font-size:12px;color:var(--muted)">按番茄鐘容量</div>
+                    </button>
+
+                    <button id="exp-energy-btn" style="padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">⚡ 能量規劃</div>
+                        <div style="font-size:12px;color:var(--muted)">早晚高效分配</div>
+                    </button>
+
+                    <button id="exp-cluster-btn" style="padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">📚 主題集中</div>
+                        <div style="font-size:12px;color:var(--muted)">同主題連續學習</div>
+                    </button>
+
+                    <button id="exp-spaced-btn" style="padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">🧠 間隔重複</div>
+                        <div style="font-size:12px;color:var(--muted)">記憶優化間隔</div>
+                    </button>
+
+                    <button id="exp-reverse-btn" style="padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">🔄 反向時序</div>
+                        <div style="font-size:12px;color:var(--muted)">最晚到期優先</div>
+                    </button>
+
+                    <button id="exp-random-btn" style="padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">🎲 隨機打亂</div>
+                        <div style="font-size:12px;color:var(--muted)">避免固定模式</div>
+                    </button>
+
+                    <button id="exp-pairs-btn" style="padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">👥 配對輪替</div>
+                        <div style="font-size:12px;color:var(--muted)">每科兩個一組</div>
+                    </button>
+
+                    <button id="exp-adaptive-btn" style="padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--container-bg);color:var(--text-color);cursor:pointer;text-align:left;transition:all 0.2s" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--container-bg)'">
+                        <div style="font-weight:bold;font-size:14px;margin-bottom:4px">🎯 自適應難度</div>
+                        <div style="font-size:12px;color:var(--muted)">基於SRS智能調整</div>
                     </button>
                 </div>
 
@@ -2001,6 +2491,46 @@
             document.getElementById('exp-rotation-btn').addEventListener('click', () => {
                 window.closeExpMenu();
                 experimentalSubjectRotation();
+            });
+            document.getElementById('exp-difficulty-btn').addEventListener('click', () => {
+                window.closeExpMenu();
+                experimentalDifficultyProgression();
+            });
+            document.getElementById('exp-weekend-btn').addEventListener('click', () => {
+                window.closeExpMenu();
+                experimentalWeekendFocus();
+            });
+            document.getElementById('exp-pomodoro-btn').addEventListener('click', () => {
+                window.closeExpMenu();
+                experimentalPomodoroPlanning();
+            });
+            document.getElementById('exp-energy-btn').addEventListener('click', () => {
+                window.closeExpMenu();
+                experimentalEnergyPlanning();
+            });
+            document.getElementById('exp-cluster-btn').addEventListener('click', () => {
+                window.closeExpMenu();
+                experimentalTopicClustering();
+            });
+            document.getElementById('exp-spaced-btn').addEventListener('click', () => {
+                window.closeExpMenu();
+                experimentalSpacedRepetition();
+            });
+            document.getElementById('exp-reverse-btn').addEventListener('click', () => {
+                window.closeExpMenu();
+                experimentalReverseChronological();
+            });
+            document.getElementById('exp-random-btn').addEventListener('click', () => {
+                window.closeExpMenu();
+                experimentalRandomShuffle();
+            });
+            document.getElementById('exp-pairs-btn').addEventListener('click', () => {
+                window.closeExpMenu();
+                experimentalAlternatingPairs();
+            });
+            document.getElementById('exp-adaptive-btn').addEventListener('click', () => {
+                window.closeExpMenu();
+                experimentalAdaptiveDifficulty();
             });
             document.getElementById('exp-menu-close-btn').addEventListener('click', window.closeExpMenu);
         };
