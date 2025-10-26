@@ -969,13 +969,14 @@
         }
 
         function validateUrl(url) {
-            if(!url) return { valid: true, url: null };
+            const trimmedUrl = url ? url.trim() : null;
+            if(!trimmedUrl) return { valid: true, url: null };
             try {
-                const urlObj = new URL(url);
+                const urlObj = new URL(trimmedUrl);
                 if(urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
                     return { valid: false, error: '連結必須使用 HTTP 或 HTTPS 協定' };
                 }
-                return { valid: true, url: url };
+                return { valid: true, url: trimmedUrl };
             } catch(err) {
                 return { valid: false, error: '連結格式無效，請輸入完整的 URL（例如：https://example.com）' };
             }
@@ -1009,7 +1010,7 @@
             const subject = G.newSubject.value.trim();
             const chapter = G.newChapter.value.trim();
             const questions = Number(G.newQuestions.value || 0);
-            const linkVal = G.newLink.value.trim() || null;
+            const linkVal = G.newLink.value || null;
             const dueVal = G.newDue.value || null;
             if(!subject || !chapter) return alert('請填科目與章節');
             // Validate link if provided
@@ -1019,7 +1020,7 @@
             }
             exams.push({
                 id: Date.now()+Math.floor(Math.random()*999),
-                subject, chapter, questions, completed:false, corrected:false, link: linkValidation.url, dueDate: dueVal ? dueVal : null,
+                subject, chapter, questions, completed:false, corrected:false, link: linkValidation.url, dueDate: dueVal,
                 srsLevel: 0, srsLastReview: null, srsNextReview: null, srsPerformance: []
             });
             saveExams();
@@ -1038,8 +1039,7 @@
             const qn = Number(questions);
             if(isNaN(qn) || qn < 0){ alert('題數不合法（必須為 0 或以上）'); return; }
             // Validate link if provided
-            const trimmedLink = link ? link.trim() : null;
-            const linkValidation = validateUrl(trimmedLink);
+            const linkValidation = validateUrl(link);
             if(!linkValidation.valid) {
                 alert(linkValidation.error);
                 return;
