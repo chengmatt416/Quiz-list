@@ -513,8 +513,8 @@
                 <input type="text" id="new-chapter" placeholder="章節" required>
                 <input type="number" id="new-questions" placeholder="題數（選填）" min="0">
                 <input type="url" id="new-link" placeholder="連結（選填）">
-                <input type="date" id="new-due">
-                <input type="date" id="new-correction-deadline">
+                <input type="date" id="new-due" aria-label="到期日">
+                <input type="date" id="new-correction-deadline" aria-label="訂正期限">
                 <button type="button" id="clear-due-btn" class="icon-btn small" style="background:#95a5a6">清除日期</button>
                 <button type="button" id="add-btn" class="submit">新增</button>
                 <div style="margin-left:auto" class="small muted">題數、連結、到期日與訂正期限為選填，匯出日曆時會使用到期日與訂正期限</div>
@@ -1109,9 +1109,10 @@
         // Helper function to create an ICS event
         function createICSEvent(exam, dateString, uid, isCorrection = false) {
             const { dtStart, dtEnd } = createICSDateRange(dateString);
-            const prefix = isCorrection ? '訂正期限' : '到期';
-            const summary = `${prefix}：${exam.subject} ${exam.chapter} (${exam.questions} 題)`;
-            const description = `${prefix === '訂正期限' ? '訂正期限' : '考卷到期'}：${exam.subject} ${exam.chapter}\\n題數：${exam.questions}\\n來源：考卷清單`;
+            const eventType = isCorrection ? '訂正期限' : '到期';
+            const summary = `${eventType}：${exam.subject} ${exam.chapter} (${exam.questions} 題)`;
+            const descriptionType = isCorrection ? '訂正期限' : '考卷到期';
+            const description = `${descriptionType}：${exam.subject} ${exam.chapter}\\n題數：${exam.questions}\\n來源：考卷清單`;
             const dtstamp = toUTCStamp(new Date());
 
             return [
