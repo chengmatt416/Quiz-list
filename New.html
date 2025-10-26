@@ -512,10 +512,11 @@
                 <input type="text" id="new-subject" placeholder="科目" required>
                 <input type="text" id="new-chapter" placeholder="章節" required>
                 <input type="number" id="new-questions" placeholder="題數（選填）" min="0">
+                <input type="url" id="new-link" placeholder="連結（選填）">
                 <input type="date" id="new-due">
                 <button type="button" id="clear-due-btn" class="icon-btn small" style="background:#95a5a6">清除日期</button>
                 <button type="button" id="add-btn" class="submit">新增</button>
-                <div style="margin-left:auto" class="small muted">題數與到期日為選填，匯出日曆時會使用到期日</div>
+                <div style="margin-left:auto" class="small muted">題數、連結與到期日為選填，匯出日曆時會使用到期日</div>
             </div>
         </div>
 
@@ -704,9 +705,9 @@
 
         // Initial data (can be customized)
         const initialData = [
-            { id: 1, subject: '數學', chapter: '第一章', questions: 50, completed: false, corrected: false, dueDate: null },
-            { id: 2, subject: '英文', chapter: '第二章', questions: 40, completed: false, corrected: false, dueDate: null },
-            { id: 3, subject: '國文', chapter: '第三章', questions: 45, completed: false, corrected: false, dueDate: null }
+            { id: 1, subject: '數學', chapter: '第一章', questions: 50, completed: false, corrected: false, dueDate: null, link: null },
+            { id: 2, subject: '英文', chapter: '第二章', questions: 40, completed: false, corrected: false, dueDate: null, link: null },
+            { id: 3, subject: '國文', chapter: '第三章', questions: 45, completed: false, corrected: false, dueDate: null, link: null }
         ];
 
         let exams = [];
@@ -726,6 +727,7 @@
             newSubject: document.getElementById('new-subject'),
             newChapter: document.getElementById('new-chapter'),
             newQuestions: document.getElementById('new-questions'),
+            newLink: document.getElementById('new-link'),
             newDue: document.getElementById('new-due'),
             sortByQuestionsBtn: document.getElementById('sort-by-questions'),
             sortByChapterBtn: document.getElementById('sort-by-chapter'),
@@ -763,6 +765,7 @@
                 exams = JSON.parse(s).map(e => ({
                     corrected:false,
                     dueDate:null,
+                    link:null,
                     srsLevel:0,
                     srsLastReview:null,
                     srsNextReview:null,
@@ -871,6 +874,7 @@
                         <div class="exam-actions">
                             <label class="correction-control"><input type="checkbox" class="correction-checkbox" data-id="${exam.id}" ${exam.corrected ? 'checked' : ''}> 訂正</label>
                             ${srsButtons}
+                            ${exam.link ? `<button class="icon-btn visit-link-btn small" data-id="${exam.id}" data-link="${escapeHtml(exam.link)}" style="background:#9b59b6">訪問連結</button>` : ''}
                             <button class="icon-btn edit-btn small" data-id="${exam.id}">編輯</button>
                             <button class="icon-btn ics-btn small" data-id="${exam.id}">匯出日曆</button>
                             <button class="delete-btn" data-id="${exam.id}" title="刪除">&times;</button>
@@ -894,6 +898,17 @@
                 btn.addEventListener('click', e => {
                     const exam = exams.find(x => x.id === Number(btn.dataset.id));
                     if(exam) downloadICS(exam);
+                });
+            });
+            document.querySelectorAll('.visit-link-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    const link = btn.dataset.link;
+                    const validation = validateUrl(link);
+                    if(validation.valid && validation.url) {
+                        window.open(validation.url, '_blank', 'noopener,noreferrer');
+                    } else if(!validation.valid) {
+                        alert(validation.error);
+                    }
                 });
             });
             document.querySelectorAll('.srs-advance-btn').forEach(btn => {
@@ -953,6 +968,20 @@
             setTimeout(()=> el.classList.remove('animate'), 900);
         }
 
+        function validateUrl(url) {
+            const trimmedUrl = url ? url.trim() : null;
+            if(!trimmedUrl) return { valid: true, url: null };
+            try {
+                const urlObj = new URL(trimmedUrl);
+                if(urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+                    return { valid: false, error: '連結必須使用 HTTP 或 HTTPS 協定' };
+                }
+                return { valid: true, url: trimmedUrl };
+            } catch(err) {
+                return { valid: false, error: '連結格式無效，請輸入完整的 URL（例如：https://example.com）' };
+            }
+        }
+
         function toggleExam(id){
             const ex = exams.find(e => e.id === id);
             if(!ex) return;
@@ -981,16 +1010,22 @@
             const subject = G.newSubject.value.trim();
             const chapter = G.newChapter.value.trim();
             const questions = Number(G.newQuestions.value || 0);
+            const linkVal = G.newLink.value || null;
             const dueVal = G.newDue.value || null;
             if(!subject || !chapter) return alert('請填科目與章節');
+            // Validate link if provided
+            const linkValidation = validateUrl(linkVal);
+            if(!linkValidation.valid) {
+                return alert(linkValidation.error);
+            }
             exams.push({
                 id: Date.now()+Math.floor(Math.random()*999),
-                subject, chapter, questions, completed:false, corrected:false, dueDate: dueVal ? dueVal : null,
+                subject, chapter, questions, completed:false, corrected:false, link: linkValidation.url, dueDate: dueVal,
                 srsLevel: 0, srsLastReview: null, srsNextReview: null, srsPerformance: []
             });
             saveExams();
             render();
-            G.newSubject.value=''; G.newChapter.value=''; G.newQuestions.value=''; G.newDue.value='';
+            G.newSubject.value=''; G.newChapter.value=''; G.newQuestions.value=''; G.newLink.value=''; G.newDue.value='';
         }
 
         function openEditDialog(id){
@@ -999,12 +1034,20 @@
             const subject = prompt('編輯科目：', ex.subject); if(subject === null) return;
             const chapter = prompt('編輯章節：', ex.chapter); if(chapter === null) return;
             const questions = prompt('編輯題數（可為 0）：', ex.questions); if(questions === null) return;
+            const link = prompt('連結 (空白表示清除)：', ex.link || '');
             const due = prompt('到期日 (YYYY-MM-DD, 空白表示清除)：', ex.dueDate || '');
             const qn = Number(questions);
             if(isNaN(qn) || qn < 0){ alert('題數不合法（必須為 0 或以上）'); return; }
+            // Validate link if provided
+            const linkValidation = validateUrl(link);
+            if(!linkValidation.valid) {
+                alert(linkValidation.error);
+                return;
+            }
             ex.subject = subject.trim() || ex.subject;
             ex.chapter = chapter.trim() || ex.chapter;
             ex.questions = qn;
+            ex.link = linkValidation.url;
             ex.dueDate = due ? due.trim() : null;
             saveExams(); render();
         }
@@ -1216,6 +1259,7 @@
                         questions: Number(item.questions) || 0,
                         completed: !!item.completed,
                         corrected: !!item.corrected,
+                        link: item.link || null,
                         dueDate: item.dueDate || null,
                         srsLevel: item.srsLevel || 0,
                         srsLastReview: item.srsLastReview || null,
