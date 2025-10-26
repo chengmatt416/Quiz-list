@@ -513,8 +513,8 @@
                 <input type="text" id="new-chapter" placeholder="章節" required>
                 <input type="number" id="new-questions" placeholder="題數（選填）" min="0">
                 <input type="url" id="new-link" placeholder="連結（選填）">
-                <input type="date" id="new-due" placeholder="到期日">
-                <input type="date" id="new-correction-deadline" placeholder="訂正期限">
+                <input type="date" id="new-due">
+                <input type="date" id="new-correction-deadline">
                 <button type="button" id="clear-due-btn" class="icon-btn small" style="background:#95a5a6">清除日期</button>
                 <button type="button" id="add-btn" class="submit">新增</button>
                 <div style="margin-left:auto" class="small muted">題數、連結、到期日與訂正期限為選填，匯出日曆時會使用到期日與訂正期限</div>
@@ -1093,103 +1093,59 @@
 
         function escapeICSText(s){ return (s||'').replace(/\\/g, '\\\\').replace(/,/g,'\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n'); }
 
+        // Helper function to parse date string and create ICS date range
+        function createICSDateRange(dateString) {
+            const dateParts = dateString.split('-').map(part => parseInt(part, 10));
+            const startDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+            const endDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+            endDateObj.setUTCDate(endDateObj.getUTCDate() + 1);
+
+            const dtStart = `${startDateObj.getUTCFullYear()}${pad(startDateObj.getUTCMonth()+1)}${pad(startDateObj.getUTCDate())}`;
+            const dtEnd = `${endDateObj.getUTCFullYear()}${pad(endDateObj.getUTCMonth()+1)}${pad(endDateObj.getUTCDate())}`;
+
+            return { dtStart, dtEnd };
+        }
+
+        // Helper function to create an ICS event
+        function createICSEvent(exam, dateString, uid, isCorrection = false) {
+            const { dtStart, dtEnd } = createICSDateRange(dateString);
+            const prefix = isCorrection ? '訂正期限' : '到期';
+            const summary = `${prefix}：${exam.subject} ${exam.chapter} (${exam.questions} 題)`;
+            const description = `${prefix === '訂正期限' ? '訂正期限' : '考卷到期'}：${exam.subject} ${exam.chapter}\\n題數：${exam.questions}\\n來源：考卷清單`;
+            const dtstamp = toUTCStamp(new Date());
+
+            return [
+                'BEGIN:VEVENT',
+                `UID:${uid}`,
+                `DTSTAMP:${dtstamp}`,
+                `SUMMARY:${escapeICSText(summary)}`,
+                `DESCRIPTION:${escapeICSText(description)}`,
+                `DTSTART;VALUE=DATE:${dtStart}`,
+                `DTEND;VALUE=DATE:${dtEnd}`,
+                `CATEGORIES:${escapeICSText(exam.subject)}`,
+                'TRANSP:TRANSPARENT',
+                'SEQUENCE:0',
+                'END:VEVENT'
+            ].join('\r\n');
+        }
+
         function createICSForExam(exam) {
             const e = {...exam};
             let events = [];
 
             // Create event for due date
-            if (e.dueDate) {
-                // DTSTART and DTEND as all-day dates (VALUE=DATE). Ensure DTEND is next day.
-                const dateParts = e.dueDate.split('-').map(part => parseInt(part, 10));
-                const startDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
-                const endDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
-                endDateObj.setUTCDate(endDateObj.getUTCDate() + 1);
-
-                const dtStart = `${startDateObj.getUTCFullYear()}${pad(startDateObj.getUTCMonth()+1)}${pad(startDateObj.getUTCDate())}`;
-                const dtEnd = `${endDateObj.getUTCFullYear()}${pad(endDateObj.getUTCMonth()+1)}${pad(endDateObj.getUTCDate())}`;
-
-                const summary = `到期：${e.subject} ${e.chapter} (${e.questions} 題)`;
-                const description = `考卷到期：${e.subject} ${e.chapter}\\n題數：${e.questions}\\n來源：考卷清單`;
-
-                const uid = `exam-${e.id}-${Date.now()}@examlist.local`;
-                const dtstamp = toUTCStamp(new Date());
-
-                events.push([
-                    'BEGIN:VEVENT',
-                    `UID:${uid}`,
-                    `DTSTAMP:${dtstamp}`,
-                    `SUMMARY:${escapeICSText(summary)}`,
-                    `DESCRIPTION:${escapeICSText(description)}`,
-                    `DTSTART;VALUE=DATE:${dtStart}`,
-                    `DTEND;VALUE=DATE:${dtEnd}`,
-                    `CATEGORIES:${escapeICSText(e.subject)}`,
-                    'TRANSP:TRANSPARENT',
-                    'SEQUENCE:0',
-                    'END:VEVENT'
-                ].join('\r\n'));
-            } else {
-                // If no due date, default to today's date (local)
+            const dueDate = e.dueDate || (() => {
                 const today = new Date();
-                e.dueDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-                
-                const dateParts = e.dueDate.split('-').map(part => parseInt(part, 10));
-                const startDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
-                const endDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
-                endDateObj.setUTCDate(endDateObj.getUTCDate() + 1);
+                return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+            })();
 
-                const dtStart = `${startDateObj.getUTCFullYear()}${pad(startDateObj.getUTCMonth()+1)}${pad(startDateObj.getUTCDate())}`;
-                const dtEnd = `${endDateObj.getUTCFullYear()}${pad(endDateObj.getUTCMonth()+1)}${pad(endDateObj.getUTCDate())}`;
-
-                const summary = `到期：${e.subject} ${e.chapter} (${e.questions} 題)`;
-                const description = `考卷到期：${e.subject} ${e.chapter}\\n題數：${e.questions}\\n來源：考卷清單`;
-
-                const uid = `exam-${e.id}-${Date.now()}@examlist.local`;
-                const dtstamp = toUTCStamp(new Date());
-
-                events.push([
-                    'BEGIN:VEVENT',
-                    `UID:${uid}`,
-                    `DTSTAMP:${dtstamp}`,
-                    `SUMMARY:${escapeICSText(summary)}`,
-                    `DESCRIPTION:${escapeICSText(description)}`,
-                    `DTSTART;VALUE=DATE:${dtStart}`,
-                    `DTEND;VALUE=DATE:${dtEnd}`,
-                    `CATEGORIES:${escapeICSText(e.subject)}`,
-                    'TRANSP:TRANSPARENT',
-                    'SEQUENCE:0',
-                    'END:VEVENT'
-                ].join('\r\n'));
-            }
+            const uid = `exam-${e.id}-${Date.now()}@examlist.local`;
+            events.push(createICSEvent(e, dueDate, uid, false));
 
             // Create event for correction deadline if it exists
             if (e.correctionDeadline) {
-                const corrDateParts = e.correctionDeadline.split('-').map(part => parseInt(part, 10));
-                const corrStartDateObj = new Date(Date.UTC(corrDateParts[0], corrDateParts[1] - 1, corrDateParts[2]));
-                const corrEndDateObj = new Date(Date.UTC(corrDateParts[0], corrDateParts[1] - 1, corrDateParts[2]));
-                corrEndDateObj.setUTCDate(corrEndDateObj.getUTCDate() + 1);
-
-                const corrDtStart = `${corrStartDateObj.getUTCFullYear()}${pad(corrStartDateObj.getUTCMonth()+1)}${pad(corrStartDateObj.getUTCDate())}`;
-                const corrDtEnd = `${corrEndDateObj.getUTCFullYear()}${pad(corrEndDateObj.getUTCMonth()+1)}${pad(corrEndDateObj.getUTCDate())}`;
-
-                const corrSummary = `訂正期限：${e.subject} ${e.chapter} (${e.questions} 題)`;
-                const corrDescription = `訂正期限：${e.subject} ${e.chapter}\\n題數：${e.questions}\\n來源：考卷清單`;
-
                 const corrUid = `exam-correction-${e.id}-${Date.now()}@examlist.local`;
-                const corrDtstamp = toUTCStamp(new Date());
-
-                events.push([
-                    'BEGIN:VEVENT',
-                    `UID:${corrUid}`,
-                    `DTSTAMP:${corrDtstamp}`,
-                    `SUMMARY:${escapeICSText(corrSummary)}`,
-                    `DESCRIPTION:${escapeICSText(corrDescription)}`,
-                    `DTSTART;VALUE=DATE:${corrDtStart}`,
-                    `DTEND;VALUE=DATE:${corrDtEnd}`,
-                    `CATEGORIES:${escapeICSText(e.subject)}`,
-                    'TRANSP:TRANSPARENT',
-                    'SEQUENCE:0',
-                    'END:VEVENT'
-                ].join('\r\n'));
+                events.push(createICSEvent(e, e.correctionDeadline, corrUid, true));
             }
 
             return events.join('\r\n');
