@@ -903,18 +903,11 @@
             document.querySelectorAll('.visit-link-btn').forEach(btn => {
                 btn.addEventListener('click', e => {
                     const link = btn.dataset.link;
-                    if(link) {
-                        // Validate URL protocol to prevent XSS
-                        try {
-                            const url = new URL(link);
-                            if(url.protocol === 'http:' || url.protocol === 'https:') {
-                                window.open(link, '_blank', 'noopener,noreferrer');
-                            } else {
-                                alert('只支援 HTTP 或 HTTPS 連結');
-                            }
-                        } catch(e) {
-                            alert('無效的連結格式');
-                        }
+                    const validation = validateUrl(link);
+                    if(validation.valid && validation.url) {
+                        window.open(validation.url, '_blank', 'noopener,noreferrer');
+                    } else if(!validation.valid) {
+                        alert(validation.error);
                     }
                 });
             });
@@ -975,6 +968,19 @@
             setTimeout(()=> el.classList.remove('animate'), 900);
         }
 
+        function validateUrl(url) {
+            if(!url) return { valid: true, url: null };
+            try {
+                const urlObj = new URL(url);
+                if(urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+                    return { valid: false, error: '連結必須使用 HTTP 或 HTTPS 協定' };
+                }
+                return { valid: true, url: url };
+            } catch(err) {
+                return { valid: false, error: '連結格式無效，請輸入完整的 URL（例如：https://example.com）' };
+            }
+        }
+
         function toggleExam(id){
             const ex = exams.find(e => e.id === id);
             if(!ex) return;
@@ -1007,19 +1013,13 @@
             const dueVal = G.newDue.value || null;
             if(!subject || !chapter) return alert('請填科目與章節');
             // Validate link if provided
-            if(linkVal) {
-                try {
-                    const url = new URL(linkVal);
-                    if(url.protocol !== 'http:' && url.protocol !== 'https:') {
-                        return alert('連結必須使用 HTTP 或 HTTPS 協定');
-                    }
-                } catch(err) {
-                    return alert('連結格式無效，請輸入完整的 URL（例如：https://example.com）');
-                }
+            const linkValidation = validateUrl(linkVal);
+            if(!linkValidation.valid) {
+                return alert(linkValidation.error);
             }
             exams.push({
                 id: Date.now()+Math.floor(Math.random()*999),
-                subject, chapter, questions, completed:false, corrected:false, link: linkVal, dueDate: dueVal ? dueVal : null,
+                subject, chapter, questions, completed:false, corrected:false, link: linkValidation.url, dueDate: dueVal ? dueVal : null,
                 srsLevel: 0, srsLastReview: null, srsNextReview: null, srsPerformance: []
             });
             saveExams();
@@ -1038,23 +1038,16 @@
             const qn = Number(questions);
             if(isNaN(qn) || qn < 0){ alert('題數不合法（必須為 0 或以上）'); return; }
             // Validate link if provided
-            const linkTrimmed = link ? link.trim() : null;
-            if(linkTrimmed) {
-                try {
-                    const url = new URL(linkTrimmed);
-                    if(url.protocol !== 'http:' && url.protocol !== 'https:') {
-                        alert('連結必須使用 HTTP 或 HTTPS 協定');
-                        return;
-                    }
-                } catch(err) {
-                    alert('連結格式無效，請輸入完整的 URL（例如：https://example.com）');
-                    return;
-                }
+            const trimmedLink = link ? link.trim() : null;
+            const linkValidation = validateUrl(trimmedLink);
+            if(!linkValidation.valid) {
+                alert(linkValidation.error);
+                return;
             }
             ex.subject = subject.trim() || ex.subject;
             ex.chapter = chapter.trim() || ex.chapter;
             ex.questions = qn;
-            ex.link = linkTrimmed;
+            ex.link = linkValidation.url;
             ex.dueDate = due ? due.trim() : null;
             saveExams(); render();
         }
