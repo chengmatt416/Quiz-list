@@ -513,10 +513,11 @@
                 <input type="text" id="new-chapter" placeholder="章節" required>
                 <input type="number" id="new-questions" placeholder="題數（選填）" min="0">
                 <input type="url" id="new-link" placeholder="連結（選填）">
-                <input type="date" id="new-due">
+                <input type="date" id="new-due" placeholder="到期日">
+                <input type="date" id="new-correction-deadline" placeholder="訂正期限">
                 <button type="button" id="clear-due-btn" class="icon-btn small" style="background:#95a5a6">清除日期</button>
                 <button type="button" id="add-btn" class="submit">新增</button>
-                <div style="margin-left:auto" class="small muted">題數、連結與到期日為選填，匯出日曆時會使用到期日</div>
+                <div style="margin-left:auto" class="small muted">題數、連結、到期日與訂正期限為選填，匯出日曆時會使用到期日與訂正期限</div>
             </div>
         </div>
 
@@ -705,9 +706,9 @@
 
         // Initial data (can be customized)
         const initialData = [
-            { id: 1, subject: '數學', chapter: '第一章', questions: 50, completed: false, corrected: false, dueDate: null, link: null },
-            { id: 2, subject: '英文', chapter: '第二章', questions: 40, completed: false, corrected: false, dueDate: null, link: null },
-            { id: 3, subject: '國文', chapter: '第三章', questions: 45, completed: false, corrected: false, dueDate: null, link: null }
+            { id: 1, subject: '數學', chapter: '第一章', questions: 50, completed: false, corrected: false, dueDate: null, link: null, correctionDeadline: null },
+            { id: 2, subject: '英文', chapter: '第二章', questions: 40, completed: false, corrected: false, dueDate: null, link: null, correctionDeadline: null },
+            { id: 3, subject: '國文', chapter: '第三章', questions: 45, completed: false, corrected: false, dueDate: null, link: null, correctionDeadline: null }
         ];
 
         let exams = [];
@@ -729,6 +730,7 @@
             newQuestions: document.getElementById('new-questions'),
             newLink: document.getElementById('new-link'),
             newDue: document.getElementById('new-due'),
+            newCorrectionDeadline: document.getElementById('new-correction-deadline'),
             sortByQuestionsBtn: document.getElementById('sort-by-questions'),
             sortByChapterBtn: document.getElementById('sort-by-chapter'),
             sortByDueBtn: document.getElementById('sort-by-due'),
@@ -766,6 +768,7 @@
                     corrected:false,
                     dueDate:null,
                     link:null,
+                    correctionDeadline:null,
                     srsLevel:0,
                     srsLastReview:null,
                     srsNextReview:null,
@@ -836,7 +839,8 @@
                     li.className = 'exam-item';
                     if(exam.completed) li.classList.add('completed');
                     let dueHtml = '';
-                    if(exam.dueDate){
+                    // Only show due date if exam is NOT completed
+                    if(exam.dueDate && !exam.completed){
                         const now = new Date();
                         const due = new Date(exam.dueDate);
                         const nowMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -845,6 +849,19 @@
                         const overdue = diffDays < 0;
                         const label = overdue ? `已過期 ${Math.abs(diffDays)} 天` : (diffDays === 0 ? '到期：今天' : `到期：${diffDays} 天後`);
                         dueHtml = `<span class="due-date ${overdue ? 'overdue': ''}" title="${formatDate(due)}">${label}</span>`;
+                    }
+
+                    // Show correction deadline if exam is completed
+                    let correctionDeadlineHtml = '';
+                    if(exam.correctionDeadline && exam.completed){
+                        const now = new Date();
+                        const corrDue = new Date(exam.correctionDeadline);
+                        const nowMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        const corrDueMid = new Date(corrDue.getFullYear(), corrDue.getMonth(), corrDue.getDate());
+                        const diffDays = Math.round((corrDueMid - nowMid) / (24*3600*1000));
+                        const overdue = diffDays < 0;
+                        const label = overdue ? `訂正已過期 ${Math.abs(diffDays)} 天` : (diffDays === 0 ? '訂正到期：今天' : `訂正到期：${diffDays} 天後`);
+                        correctionDeadlineHtml = `<span class="due-date ${overdue ? 'overdue': ''}" title="${formatDate(corrDue)}">${label}</span>`;
                     }
 
                     // SRS level display
@@ -866,6 +883,7 @@
                                 <div>
                                     <span class="chapter">${escapeHtml(exam.chapter)}</span>
                                     ${dueHtml}
+                                    ${correctionDeadlineHtml}
                                     ${srsHtml}
                                 </div>
                                 <div class="meta small muted">${escapeHtml(exam.subject)} ・ <span class="meta-questions">${exam.questions} 題</span></div>
@@ -1012,6 +1030,7 @@
             const questions = Number(G.newQuestions.value || 0);
             const linkVal = G.newLink.value || null;
             const dueVal = G.newDue.value || null;
+            const correctionDeadlineVal = G.newCorrectionDeadline.value || null;
             if(!subject || !chapter) return alert('請填科目與章節');
             // Validate link if provided
             const linkValidation = validateUrl(linkVal);
@@ -1020,12 +1039,12 @@
             }
             exams.push({
                 id: Date.now()+Math.floor(Math.random()*999),
-                subject, chapter, questions, completed:false, corrected:false, link: linkValidation.url, dueDate: dueVal,
+                subject, chapter, questions, completed:false, corrected:false, link: linkValidation.url, dueDate: dueVal, correctionDeadline: correctionDeadlineVal,
                 srsLevel: 0, srsLastReview: null, srsNextReview: null, srsPerformance: []
             });
             saveExams();
             render();
-            G.newSubject.value=''; G.newChapter.value=''; G.newQuestions.value=''; G.newLink.value=''; G.newDue.value='';
+            G.newSubject.value=''; G.newChapter.value=''; G.newQuestions.value=''; G.newLink.value=''; G.newDue.value=''; G.newCorrectionDeadline.value='';
         }
 
         function openEditDialog(id){
@@ -1036,6 +1055,7 @@
             const questions = prompt('編輯題數（可為 0）：', ex.questions); if(questions === null) return;
             const link = prompt('連結 (空白表示清除)：', ex.link || '');
             const due = prompt('到期日 (YYYY-MM-DD, 空白表示清除)：', ex.dueDate || '');
+            const correctionDeadline = prompt('訂正期限 (YYYY-MM-DD, 空白表示清除)：', ex.correctionDeadline || '');
             const qn = Number(questions);
             if(isNaN(qn) || qn < 0){ alert('題數不合法（必須為 0 或以上）'); return; }
             // Validate link if provided
@@ -1049,6 +1069,7 @@
             ex.questions = qn;
             ex.link = linkValidation.url;
             ex.dueDate = due ? due.trim() : null;
+            ex.correctionDeadline = correctionDeadline ? correctionDeadline.trim() : null;
             saveExams(); render();
         }
 
@@ -1074,42 +1095,104 @@
 
         function createICSForExam(exam) {
             const e = {...exam};
-            if (!e.dueDate) {
+            let events = [];
+
+            // Create event for due date
+            if (e.dueDate) {
+                // DTSTART and DTEND as all-day dates (VALUE=DATE). Ensure DTEND is next day.
+                const dateParts = e.dueDate.split('-').map(part => parseInt(part, 10));
+                const startDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+                const endDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+                endDateObj.setUTCDate(endDateObj.getUTCDate() + 1);
+
+                const dtStart = `${startDateObj.getUTCFullYear()}${pad(startDateObj.getUTCMonth()+1)}${pad(startDateObj.getUTCDate())}`;
+                const dtEnd = `${endDateObj.getUTCFullYear()}${pad(endDateObj.getUTCMonth()+1)}${pad(endDateObj.getUTCDate())}`;
+
+                const summary = `到期：${e.subject} ${e.chapter} (${e.questions} 題)`;
+                const description = `考卷到期：${e.subject} ${e.chapter}\\n題數：${e.questions}\\n來源：考卷清單`;
+
+                const uid = `exam-${e.id}-${Date.now()}@examlist.local`;
+                const dtstamp = toUTCStamp(new Date());
+
+                events.push([
+                    'BEGIN:VEVENT',
+                    `UID:${uid}`,
+                    `DTSTAMP:${dtstamp}`,
+                    `SUMMARY:${escapeICSText(summary)}`,
+                    `DESCRIPTION:${escapeICSText(description)}`,
+                    `DTSTART;VALUE=DATE:${dtStart}`,
+                    `DTEND;VALUE=DATE:${dtEnd}`,
+                    `CATEGORIES:${escapeICSText(e.subject)}`,
+                    'TRANSP:TRANSPARENT',
+                    'SEQUENCE:0',
+                    'END:VEVENT'
+                ].join('\r\n'));
+            } else {
                 // If no due date, default to today's date (local)
                 const today = new Date();
                 e.dueDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+                
+                const dateParts = e.dueDate.split('-').map(part => parseInt(part, 10));
+                const startDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+                const endDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+                endDateObj.setUTCDate(endDateObj.getUTCDate() + 1);
+
+                const dtStart = `${startDateObj.getUTCFullYear()}${pad(startDateObj.getUTCMonth()+1)}${pad(startDateObj.getUTCDate())}`;
+                const dtEnd = `${endDateObj.getUTCFullYear()}${pad(endDateObj.getUTCMonth()+1)}${pad(endDateObj.getUTCDate())}`;
+
+                const summary = `到期：${e.subject} ${e.chapter} (${e.questions} 題)`;
+                const description = `考卷到期：${e.subject} ${e.chapter}\\n題數：${e.questions}\\n來源：考卷清單`;
+
+                const uid = `exam-${e.id}-${Date.now()}@examlist.local`;
+                const dtstamp = toUTCStamp(new Date());
+
+                events.push([
+                    'BEGIN:VEVENT',
+                    `UID:${uid}`,
+                    `DTSTAMP:${dtstamp}`,
+                    `SUMMARY:${escapeICSText(summary)}`,
+                    `DESCRIPTION:${escapeICSText(description)}`,
+                    `DTSTART;VALUE=DATE:${dtStart}`,
+                    `DTEND;VALUE=DATE:${dtEnd}`,
+                    `CATEGORIES:${escapeICSText(e.subject)}`,
+                    'TRANSP:TRANSPARENT',
+                    'SEQUENCE:0',
+                    'END:VEVENT'
+                ].join('\r\n'));
             }
 
-            // DTSTART and DTEND as all-day dates (VALUE=DATE). Ensure DTEND is next day.
-            const dateParts = e.dueDate.split('-').map(part => parseInt(part, 10));
-            const startDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
-            const endDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
-            endDateObj.setUTCDate(endDateObj.getUTCDate() + 1);
+            // Create event for correction deadline if it exists
+            if (e.correctionDeadline) {
+                const corrDateParts = e.correctionDeadline.split('-').map(part => parseInt(part, 10));
+                const corrStartDateObj = new Date(Date.UTC(corrDateParts[0], corrDateParts[1] - 1, corrDateParts[2]));
+                const corrEndDateObj = new Date(Date.UTC(corrDateParts[0], corrDateParts[1] - 1, corrDateParts[2]));
+                corrEndDateObj.setUTCDate(corrEndDateObj.getUTCDate() + 1);
 
-            const dtStart = `${startDateObj.getUTCFullYear()}${pad(startDateObj.getUTCMonth()+1)}${pad(startDateObj.getUTCDate())}`;
-            const dtEnd = `${endDateObj.getUTCFullYear()}${pad(endDateObj.getUTCMonth()+1)}${pad(endDateObj.getUTCDate())}`;
+                const corrDtStart = `${corrStartDateObj.getUTCFullYear()}${pad(corrStartDateObj.getUTCMonth()+1)}${pad(corrStartDateObj.getUTCDate())}`;
+                const corrDtEnd = `${corrEndDateObj.getUTCFullYear()}${pad(corrEndDateObj.getUTCMonth()+1)}${pad(corrEndDateObj.getUTCDate())}`;
 
-            const summary = `到期：${e.subject} ${e.chapter} (${e.questions} 題)`;
-            const description = `考卷到期：${e.subject} ${e.chapter}\\n題數：${e.questions}\\n來源：考卷清單`;
+                const corrSummary = `訂正期限：${e.subject} ${e.chapter} (${e.questions} 題)`;
+                const corrDescription = `訂正期限：${e.subject} ${e.chapter}\\n題數：${e.questions}\\n來源：考卷清單`;
 
-            const uid = `exam-${e.id}-${Date.now()}@examlist.local`;
-            const dtstamp = toUTCStamp(new Date());
+                const corrUid = `exam-correction-${e.id}-${Date.now()}@examlist.local`;
+                const corrDtstamp = toUTCStamp(new Date());
 
-            const icsEvent = [
-                'BEGIN:VEVENT',
-                `UID:${uid}`,
-                `DTSTAMP:${dtstamp}`,
-                `SUMMARY:${escapeICSText(summary)}`,
-                `DESCRIPTION:${escapeICSText(description)}`,
-                `DTSTART;VALUE=DATE:${dtStart}`,
-                `DTEND;VALUE=DATE:${dtEnd}`,
-                `CATEGORIES:${escapeICSText(e.subject)}`,
-                'TRANSP:TRANSPARENT',
-                'SEQUENCE:0',
-                'END:VEVENT'
-            ].join('\r\n');
+                events.push([
+                    'BEGIN:VEVENT',
+                    `UID:${corrUid}`,
+                    `DTSTAMP:${corrDtstamp}`,
+                    `SUMMARY:${escapeICSText(corrSummary)}`,
+                    `DESCRIPTION:${escapeICSText(corrDescription)}`,
+                    `DTSTART;VALUE=DATE:${corrDtStart}`,
+                    `DTEND;VALUE=DATE:${corrDtEnd}`,
+                    `CATEGORIES:${escapeICSText(e.subject)}`,
+                    'TRANSP:TRANSPARENT',
+                    'SEQUENCE:0',
+                    'END:VEVENT'
+                ].join('\r\n'));
+            }
 
-            return icsEvent;
+            return events.join('\r\n');
         }
 
         function downloadICS(exam){
@@ -3487,6 +3570,7 @@
         G.exportPdfBtn.addEventListener('click', exportPDF);
         G.clearDueBtn.addEventListener('click', () => {
             G.newDue.value = '';
+            G.newCorrectionDeadline.value = '';
         });
 
         // Add SRS report button reference
