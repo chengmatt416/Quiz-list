@@ -3412,14 +3412,29 @@
                     return scoreA - scoreB;
                 });
             } else if (priorityMode === 'subject-rotation') {
-                // Rotate subjects to avoid monotony
-                const subjectOrder = {};
-                let order = 0;
-                sorted.sort((a, b) => {
-                    if (!subjectOrder[a.subject]) subjectOrder[a.subject] = order++;
-                    if (!subjectOrder[b.subject]) subjectOrder[b.subject] = order++;
-                    return subjectOrder[a.subject] - subjectOrder[b.subject];
+                // Rotate subjects to avoid monotony - group by subject first
+                const subjectGroups = {};
+                incomplete.forEach(exam => {
+                    if (!subjectGroups[exam.subject]) {
+                        subjectGroups[exam.subject] = [];
+                    }
+                    subjectGroups[exam.subject].push(exam);
                 });
+                
+                // Sort subjects alphabetically for consistent ordering
+                const subjects = Object.keys(subjectGroups).sort();
+                
+                // Interleave exams from different subjects
+                sorted = [];
+                let maxGroupLength = Math.max(...subjects.map(s => subjectGroups[s].length));
+                
+                for (let i = 0; i < maxGroupLength; i++) {
+                    for (let subject of subjects) {
+                        if (subjectGroups[subject][i]) {
+                            sorted.push(subjectGroups[subject][i]);
+                        }
+                    }
+                }
             }
 
             // Generate daily schedule
@@ -3428,6 +3443,7 @@
             today.setHours(0, 0, 0, 0);
             let dayOffset = 0;
             let examQueue = [...sorted];
+            let lastDaySubjects = new Set(); // Track subjects used in previous day for rotation mode
 
             while (examQueue.length > 0) {
                 const currentDay = new Date(today);
@@ -3462,8 +3478,41 @@
                     totalQuestions: 0
                 };
 
+                const currentDaySubjects = new Set(); // Track subjects used today
+
                 while (remainingCapacity > 0 && examQueue.length > 0) {
-                    const exam = examQueue[0];
+                    let examIndex = -1;
+                    
+                    // For subject-rotation mode, find an exam from a different subject than yesterday AND today
+                    if (priorityMode === 'subject-rotation') {
+                        // Find exam from subject not used yesterday and not used today
+                        for (let i = 0; i < examQueue.length; i++) {
+                            if (!lastDaySubjects.has(examQueue[i].subject) && !currentDaySubjects.has(examQueue[i].subject)) {
+                                examIndex = i;
+                                break;
+                            }
+                        }
+                        
+                        // If not found, try to find exam from subject not used today (even if used yesterday)
+                        if (examIndex === -1) {
+                            for (let i = 0; i < examQueue.length; i++) {
+                                if (!currentDaySubjects.has(examQueue[i].subject)) {
+                                    examIndex = i;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // If still not found (all subjects already used today), move to next day
+                        if (examIndex === -1) {
+                            break;
+                        }
+                    } else {
+                        // For other modes, just take the first exam
+                        examIndex = 0;
+                    }
+                    
+                    const exam = examQueue[examIndex];
                     const examQuestions = exam.questions;
 
                     // Check if exam can fit in remaining capacity
@@ -3479,9 +3528,46 @@
                         });
                         daySchedule.totalQuestions += examQuestions;
                         remainingCapacity -= examQuestions;
-                        examQueue.shift();
+                        currentDaySubjects.add(exam.subject);
+                        examQueue.splice(examIndex, 1);
                     } else if (remainingCapacity >= 10) {
-                        // Split exam if remaining capacity is enough for meaningful work
+                        // In subject-rotation mode, avoid splitting exams when possible to prevent same subject on consecutive days
+                        if (priorityMode === 'subject-rotation') {
+                            // Try to find a smaller exam that fits from a different subject
+                            let foundAlternative = false;
+                            for (let i = 0; i < examQueue.length; i++) {
+                                if (!lastDaySubjects.has(examQueue[i].subject) && 
+                                    !currentDaySubjects.has(examQueue[i].subject) &&
+                                    examQueue[i].questions <= remainingCapacity) {
+                                    examIndex = i;
+                                    foundAlternative = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (foundAlternative) {
+                                const altExam = examQueue[examIndex];
+                                daySchedule.items.push({
+                                    id: altExam.id,
+                                    subject: altExam.subject,
+                                    chapter: altExam.chapter,
+                                    questions: altExam.questions,
+                                    dueDate: altExam.dueDate,
+                                    partial: false
+                                });
+                                daySchedule.totalQuestions += altExam.questions;
+                                remainingCapacity -= altExam.questions;
+                                currentDaySubjects.add(altExam.subject);
+                                examQueue.splice(examIndex, 1);
+                                continue;
+                            } else {
+                                // No alternative found, can't split in rotation mode
+                                // Move to next day to maintain rotation
+                                break;
+                            }
+                        }
+                        
+                        // For non-rotation modes, split the exam
                         daySchedule.items.push({
                             id: exam.id,
                             subject: exam.subject,
@@ -3493,6 +3579,7 @@
                         });
                         daySchedule.totalQuestions += remainingCapacity;
                         exam.questions -= remainingCapacity;
+                        currentDaySubjects.add(exam.subject);
                         remainingCapacity = 0;
                     } else {
                         // Not enough capacity for meaningful work, move to next day
@@ -3503,6 +3590,9 @@
                 if (daySchedule.items.length > 0) {
                     schedule.push(daySchedule);
                 }
+
+                // Update last day subjects for next iteration
+                lastDaySubjects = currentDaySubjects;
 
                 dayOffset++;
 
