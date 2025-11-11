@@ -3481,35 +3481,35 @@
                 const currentDaySubjects = new Set(); // Track subjects used today
 
                 while (remainingCapacity > 0 && examQueue.length > 0) {
-                    let examIndex = 0;
+                    let examIndex = -1;
                     
-                    // For subject-rotation mode, find an exam from a different subject than yesterday
-                    if (priorityMode === 'subject-rotation' && lastDaySubjects.size > 0) {
-                        // Try to find an exam from a subject not used yesterday AND not yet used today
-                        let foundDifferentSubject = false;
+                    // For subject-rotation mode, find an exam from a different subject than yesterday AND today
+                    if (priorityMode === 'subject-rotation') {
+                        // Find exam from subject not used yesterday and not used today
                         for (let i = 0; i < examQueue.length; i++) {
                             if (!lastDaySubjects.has(examQueue[i].subject) && !currentDaySubjects.has(examQueue[i].subject)) {
                                 examIndex = i;
-                                foundDifferentSubject = true;
                                 break;
                             }
                         }
                         
-                        // If not found, try to find an exam from subject not used today (but may have been used yesterday)
-                        if (!foundDifferentSubject) {
+                        // If not found, try to find exam from subject not used today (even if used yesterday)
+                        if (examIndex === -1) {
                             for (let i = 0; i < examQueue.length; i++) {
                                 if (!currentDaySubjects.has(examQueue[i].subject)) {
                                     examIndex = i;
-                                    foundDifferentSubject = true;
                                     break;
                                 }
                             }
                         }
                         
-                        // If still not found, just take the first exam
-                        if (!foundDifferentSubject) {
-                            examIndex = 0;
+                        // If still not found (all subjects already used today), move to next day
+                        if (examIndex === -1) {
+                            break;
                         }
+                    } else {
+                        // For other modes, just take the first exam
+                        examIndex = 0;
                     }
                     
                     const exam = examQueue[examIndex];
@@ -3531,13 +3531,14 @@
                         currentDaySubjects.add(exam.subject);
                         examQueue.splice(examIndex, 1);
                     } else if (remainingCapacity >= 10) {
-                        // In subject-rotation mode, avoid splitting exams across days when possible
-                        // to prevent same subject appearing on consecutive days
-                        if (priorityMode === 'subject-rotation' && lastDaySubjects.has(exam.subject)) {
-                            // This exam is from yesterday's subject, try to skip it
+                        // In subject-rotation mode, avoid splitting exams when possible to prevent same subject on consecutive days
+                        if (priorityMode === 'subject-rotation') {
+                            // Try to find a smaller exam that fits from a different subject
                             let foundAlternative = false;
-                            for (let i = examIndex + 1; i < examQueue.length; i++) {
-                                if (!lastDaySubjects.has(examQueue[i].subject) && examQueue[i].questions <= remainingCapacity) {
+                            for (let i = 0; i < examQueue.length; i++) {
+                                if (!lastDaySubjects.has(examQueue[i].subject) && 
+                                    !currentDaySubjects.has(examQueue[i].subject) &&
+                                    examQueue[i].questions <= remainingCapacity) {
                                     examIndex = i;
                                     foundAlternative = true;
                                     break;
@@ -3545,7 +3546,6 @@
                             }
                             
                             if (foundAlternative) {
-                                // Process the alternative exam instead
                                 const altExam = examQueue[examIndex];
                                 daySchedule.items.push({
                                     id: altExam.id,
@@ -3560,10 +3560,14 @@
                                 currentDaySubjects.add(altExam.subject);
                                 examQueue.splice(examIndex, 1);
                                 continue;
+                            } else {
+                                // No alternative found, can't split in rotation mode
+                                // Move to next day to maintain rotation
+                                break;
                             }
                         }
                         
-                        // Split exam if no alternative found or not in rotation mode
+                        // For non-rotation modes, split the exam
                         daySchedule.items.push({
                             id: exam.id,
                             subject: exam.subject,
