@@ -483,6 +483,18 @@
                 </div>
             </div>
 
+            <!-- Batch Operations Toolbar -->
+            <div id="batch-toolbar" class="card" style="display:none;margin-top:12px">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <strong>已選擇 <span id="selected-count">0</span> 項</strong>
+                    <button type="button" id="select-all-btn" class="icon-btn small">全選</button>
+                    <button type="button" id="deselect-all-btn" class="icon-btn small theme-toggle">取消全選</button>
+                    <button type="button" id="batch-edit-btn" class="icon-btn small" style="background:#27ae60">批次編輯</button>
+                    <button type="button" id="batch-delete-btn" class="icon-btn small" style="background:#e74c3c">批次刪除</button>
+                    <button type="button" id="batch-add-btn" class="icon-btn small" style="background:#9b59b6">批次新增</button>
+                </div>
+            </div>
+
             <div class="card summary">
                 <div>
                     <h4>完成進度</h4>
@@ -596,6 +608,131 @@
                 <div style="display:flex;gap:12px;margin-top:20px">
                     <button type="button" id="save-settings" class="icon-btn">開始使用</button>
                     <button type="button" id="skip-onboarding" class="theme-toggle">稍後設定</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch Edit Modal -->
+        <div id="batch-edit-modal" class="modal" style="display:none">
+            <div class="modal-content">
+                <h2>批次編輯考卷</h2>
+                <p class="small muted">對選中的 <span id="batch-edit-count">0</span> 個考卷進行統一修改</p>
+
+                <div class="form-group">
+                    <label>要修改的欄位：</label>
+                    <select id="batch-field-select">
+                        <option value="">-- 選擇欄位 --</option>
+                        <option value="subject">科目</option>
+                        <option value="questions">題數</option>
+                        <option value="dueDate">到期日</option>
+                        <option value="correctionDeadline">訂正期限</option>
+                        <option value="completed">完成狀態</option>
+                        <option value="corrected">訂正狀態</option>
+                    </select>
+                </div>
+
+                <div id="batch-field-input" style="display:none">
+                    <div class="form-group">
+                        <label id="batch-field-label">新值：</label>
+                        <input type="text" id="batch-field-value" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)">
+                        <select id="batch-field-select-value" style="display:none;width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)">
+                            <option value="true">是</option>
+                            <option value="false">否</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:12px;margin-top:20px">
+                    <button type="button" id="batch-edit-apply" class="icon-btn" style="background:#27ae60">套用修改</button>
+                    <button type="button" id="batch-edit-cancel" class="theme-toggle">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch Add Modal -->
+        <div id="batch-add-modal" class="modal" style="display:none">
+            <div class="modal-content" style="max-width:700px">
+                <h2>批次新增考卷</h2>
+                <p class="small muted">支援兩種模式：CSV 格式或章節範圍自動生成</p>
+
+                <!-- Mode Selection -->
+                <div class="form-group">
+                    <label>新增模式：</label>
+                    <select id="batch-add-mode" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)">
+                        <option value="csv">CSV 格式（多個不同考卷）</option>
+                        <option value="range">章節範圍（同一科目多個章節）</option>
+                    </select>
+                </div>
+
+                <!-- CSV Mode -->
+                <div id="csv-mode-content">
+                    <div class="form-group">
+                        <label>輸入考卷資料（CSV 格式）：</label>
+                        <textarea id="batch-add-input" rows="10" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color);font-family:monospace" placeholder="範例：
+數學,第一章,50,2025-12-01,2025-12-05,https://example.com
+英文,第二章,40,2025-12-02,,
+國文,第三章,45"></textarea>
+                        <div class="small muted" style="margin-top:8px">
+                            格式說明：<br>
+                            - 每行一個考卷<br>
+                            - 用逗號分隔各欄位<br>
+                            - 必填：科目、章節<br>
+                            - 選填：題數、到期日（YYYY-MM-DD）、訂正期限（YYYY-MM-DD）、連結<br>
+                            - 選填欄位可留空，但逗號要保留
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Range Mode -->
+                <div id="range-mode-content" style="display:none">
+                    <div class="form-group">
+                        <label for="range-subject">科目：</label>
+                        <input type="text" id="range-subject" placeholder="例如：國文" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="range-prefix">章節前綴：</label>
+                        <input type="text" id="range-prefix" placeholder="例如：L（用於 L1, L2...）或留空" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)">
+                        <div class="small muted">章節編號前的固定文字，如 "L"、"第" 等，可留空</div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label for="range-start">起始編號：</label>
+                            <input type="number" id="range-start" placeholder="例如：5" min="1" value="1" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)">
+                        </div>
+                        <div class="form-group">
+                            <label for="range-end">結束編號：</label>
+                            <input type="number" id="range-end" placeholder="例如：10" min="1" value="10" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="range-suffix">章節後綴：</label>
+                        <input type="text" id="range-suffix" placeholder="例如：章（用於 第1章, 第2章...）或留空" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)">
+                        <div class="small muted">章節編號後的固定文字，如 "章"、"課" 等，可留空</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="range-questions">每個章節的題數（選填）：</label>
+                        <input type="number" id="range-questions" placeholder="例如：50" min="0" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="range-due-date">到期日（選填）：</label>
+                        <input type="date" id="range-due-date" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);background:transparent;color:var(--text-color)">
+                    </div>
+
+                    <div class="small muted" style="padding:12px;background:var(--secondary-color);border-radius:8px">
+                        <strong>範例預覽：</strong><br>
+                        科目="國文", 前綴="L", 起始=5, 結束=10, 後綴=""<br>
+                        將生成：國文 L5、國文 L6、國文 L7、國文 L8、國文 L9、國文 L10
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:12px;margin-top:20px">
+                    <button type="button" id="batch-add-apply" class="icon-btn" style="background:#27ae60">新增全部</button>
+                    <button type="button" id="batch-add-cancel" class="theme-toggle">取消</button>
                 </div>
             </div>
         </div>
@@ -714,6 +851,7 @@
         let exams = [];
         let sortState = { key: 'chapter', direction: 'asc' };
         let cardViewMode = false;
+        let selectedExamIds = new Set(); // Track selected exams for batch operations
 
 
         const G = {
@@ -878,6 +1016,7 @@
 
                     li.innerHTML = `
                         <div class="left">
+                            <input type="checkbox" class="batch-select-checkbox" data-id="${exam.id}" ${selectedExamIds.has(exam.id) ? 'checked' : ''} style="margin-right:8px">
                             <input type="checkbox" class="completion-checkbox" data-id="${exam.id}" ${exam.completed ? 'checked' : ''}>
                             <div class="exam-info">
                                 <div>
@@ -908,6 +1047,15 @@
         }
 
         function attachRowListeners(){
+            document.querySelectorAll('.batch-select-checkbox').forEach(cb => cb.addEventListener('change', e => {
+                const id = Number(cb.dataset.id);
+                if(cb.checked) {
+                    selectedExamIds.add(id);
+                } else {
+                    selectedExamIds.delete(id);
+                }
+                updateBatchToolbar();
+            }));
             document.querySelectorAll('.completion-checkbox').forEach(cb => cb.addEventListener('change', e => toggleExam(Number(cb.dataset.id))));
             document.querySelectorAll('.correction-checkbox').forEach(cb => cb.addEventListener('change', e => toggleCorrection(Number(cb.dataset.id))));
             document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', e => deleteExam(Number(btn.dataset.id))));
@@ -998,6 +1146,302 @@
             } catch(err) {
                 return { valid: false, error: '連結格式無效，請輸入完整的 URL（例如：https://example.com）' };
             }
+        }
+
+        // Batch Operations Functions
+        function updateBatchToolbar() {
+            const toolbar = document.getElementById('batch-toolbar');
+            const count = selectedExamIds.size;
+            document.getElementById('selected-count').textContent = count;
+            
+            if(count > 0) {
+                toolbar.style.display = 'block';
+            } else {
+                toolbar.style.display = 'none';
+            }
+        }
+
+        function selectAllExams() {
+            selectedExamIds.clear();
+            exams.forEach(exam => selectedExamIds.add(exam.id));
+            render();
+        }
+
+        function deselectAllExams() {
+            selectedExamIds.clear();
+            render();
+        }
+
+        function batchDeleteExams() {
+            if(selectedExamIds.size === 0) {
+                alert('請先選擇要刪除的考卷');
+                return;
+            }
+            
+            if(!confirm(`確定要刪除選中的 ${selectedExamIds.size} 個考卷嗎？`)) {
+                return;
+            }
+            
+            exams = exams.filter(exam => !selectedExamIds.has(exam.id));
+            selectedExamIds.clear();
+            saveExams();
+            render();
+        }
+
+        function showBatchEditModal() {
+            if(selectedExamIds.size === 0) {
+                alert('請先選擇要編輯的考卷');
+                return;
+            }
+            
+            document.getElementById('batch-edit-count').textContent = selectedExamIds.size;
+            document.getElementById('batch-edit-modal').style.display = 'flex';
+            document.getElementById('batch-field-select').value = '';
+            document.getElementById('batch-field-input').style.display = 'none';
+        }
+
+        function hideBatchEditModal() {
+            document.getElementById('batch-edit-modal').style.display = 'none';
+        }
+
+        function handleBatchFieldChange() {
+            const field = document.getElementById('batch-field-select').value;
+            const inputContainer = document.getElementById('batch-field-input');
+            const textInput = document.getElementById('batch-field-value');
+            const selectInput = document.getElementById('batch-field-select-value');
+            const label = document.getElementById('batch-field-label');
+            
+            if(!field) {
+                inputContainer.style.display = 'none';
+                return;
+            }
+            
+            inputContainer.style.display = 'block';
+            
+            // Configure input based on field type
+            if(field === 'completed' || field === 'corrected') {
+                textInput.style.display = 'none';
+                selectInput.style.display = 'block';
+                label.textContent = field === 'completed' ? '完成狀態：' : '訂正狀態：';
+            } else if(field === 'dueDate' || field === 'correctionDeadline') {
+                textInput.style.display = 'block';
+                selectInput.style.display = 'none';
+                textInput.type = 'date';
+                label.textContent = field === 'dueDate' ? '到期日：' : '訂正期限：';
+            } else if(field === 'subject') {
+                textInput.style.display = 'block';
+                selectInput.style.display = 'none';
+                textInput.type = 'text';
+                label.textContent = '科目：';
+            } else if(field === 'questions') {
+                textInput.style.display = 'block';
+                selectInput.style.display = 'none';
+                textInput.type = 'number';
+                textInput.min = '0';
+                label.textContent = '題數：';
+            }
+        }
+
+        function applyBatchEdit() {
+            const field = document.getElementById('batch-field-select').value;
+            
+            if(!field) {
+                alert('請選擇要修改的欄位');
+                return;
+            }
+            
+            let value;
+            if(field === 'completed' || field === 'corrected') {
+                value = document.getElementById('batch-field-select-value').value === 'true';
+            } else if(field === 'questions') {
+                value = parseInt(document.getElementById('batch-field-value').value);
+                if(isNaN(value) || value < 0) {
+                    alert('題數必須是 0 或正整數');
+                    return;
+                }
+            } else {
+                value = document.getElementById('batch-field-value').value;
+                if((field === 'dueDate' || field === 'correctionDeadline') && !value) {
+                    value = null; // Allow clearing dates
+                }
+            }
+            
+            // Apply changes to selected exams
+            let updatedCount = 0;
+            exams.forEach(exam => {
+                if(selectedExamIds.has(exam.id)) {
+                    exam[field] = value;
+                    updatedCount++;
+                }
+            });
+            
+            saveExams();
+            render();
+            hideBatchEditModal();
+            alert(`已成功修改 ${updatedCount} 個考卷`);
+        }
+
+        function showBatchAddModal() {
+            document.getElementById('batch-add-modal').style.display = 'flex';
+            document.getElementById('batch-add-input').value = '';
+            document.getElementById('batch-add-mode').value = 'csv';
+            handleBatchAddModeChange();
+        }
+
+        function hideBatchAddModal() {
+            document.getElementById('batch-add-modal').style.display = 'none';
+        }
+
+        function handleBatchAddModeChange() {
+            const mode = document.getElementById('batch-add-mode').value;
+            const csvContent = document.getElementById('csv-mode-content');
+            const rangeContent = document.getElementById('range-mode-content');
+            
+            if(mode === 'csv') {
+                csvContent.style.display = 'block';
+                rangeContent.style.display = 'none';
+            } else {
+                csvContent.style.display = 'none';
+                rangeContent.style.display = 'block';
+            }
+        }
+
+        function applyBatchAdd() {
+            const mode = document.getElementById('batch-add-mode').value;
+            
+            if(mode === 'csv') {
+                applyBatchAddCSV();
+            } else {
+                applyBatchAddRange();
+            }
+        }
+
+        function applyBatchAddCSV() {
+            const input = document.getElementById('batch-add-input').value;
+            const lines = input.split('\n').filter(line => line.trim());
+            
+            if(lines.length === 0) {
+                alert('請輸入要新增的考卷資料');
+                return;
+            }
+            
+            const newExams = [];
+            const errors = [];
+            
+            lines.forEach((line, index) => {
+                const parts = line.split(',').map(p => p.trim());
+                const subject = parts[0] || '';
+                const chapter = parts[1] || '';
+                const questions = parts[2] ? parseInt(parts[2]) : 0;
+                const dueDate = parts[3] || null;
+                const correctionDeadline = parts[4] || null;
+                const link = parts[5] || null;
+                
+                // Validate required fields
+                if(!subject || !chapter) {
+                    errors.push(`第 ${index + 1} 行：科目和章節為必填`);
+                    return;
+                }
+                
+                // Validate link if provided
+                if(link) {
+                    const linkValidation = validateUrl(link);
+                    if(!linkValidation.valid) {
+                        errors.push(`第 ${index + 1} 行：${linkValidation.error}`);
+                        return;
+                    }
+                }
+                
+                newExams.push({
+                    id: Date.now() + Math.floor(Math.random()*999) + index,
+                    subject,
+                    chapter,
+                    questions: isNaN(questions) ? 0 : questions,
+                    dueDate,
+                    correctionDeadline,
+                    link: link ? link : null,
+                    completed: false,
+                    corrected: false,
+                    srsLevel: 0,
+                    srsLastReview: null,
+                    srsNextReview: null,
+                    srsPerformance: []
+                });
+            });
+            
+            if(errors.length > 0) {
+                alert('發現錯誤：\n' + errors.join('\n'));
+                return;
+            }
+            
+            if(newExams.length === 0) {
+                alert('沒有有效的考卷資料可新增');
+                return;
+            }
+            
+            exams.push(...newExams);
+            saveExams();
+            render();
+            hideBatchAddModal();
+            alert(`成功新增 ${newExams.length} 個考卷`);
+        }
+
+        function applyBatchAddRange() {
+            const subject = document.getElementById('range-subject').value.trim();
+            const prefix = document.getElementById('range-prefix').value.trim();
+            const start = parseInt(document.getElementById('range-start').value);
+            const end = parseInt(document.getElementById('range-end').value);
+            const suffix = document.getElementById('range-suffix').value.trim();
+            const questions = parseInt(document.getElementById('range-questions').value) || 0;
+            const dueDate = document.getElementById('range-due-date').value || null;
+            
+            // Validate inputs
+            if(!subject) {
+                alert('請輸入科目');
+                return;
+            }
+            
+            if(isNaN(start) || isNaN(end)) {
+                alert('請輸入有效的起始和結束編號');
+                return;
+            }
+            
+            if(start > end) {
+                alert('起始編號不能大於結束編號');
+                return;
+            }
+            
+            if(end - start > 100) {
+                alert('範圍太大，最多支援 100 個章節');
+                return;
+            }
+            
+            // Generate exams
+            const newExams = [];
+            for(let i = start; i <= end; i++) {
+                const chapter = `${prefix}${i}${suffix}`;
+                newExams.push({
+                    id: Date.now() + Math.floor(Math.random()*999) + (i - start),
+                    subject,
+                    chapter,
+                    questions,
+                    dueDate,
+                    correctionDeadline: null,
+                    link: null,
+                    completed: false,
+                    corrected: false,
+                    srsLevel: 0,
+                    srsLastReview: null,
+                    srsNextReview: null,
+                    srsPerformance: []
+                });
+            }
+            
+            exams.push(...newExams);
+            saveExams();
+            render();
+            hideBatchAddModal();
+            alert(`成功新增 ${newExams.length} 個考卷（${subject} ${prefix}${start}${suffix} 到 ${prefix}${end}${suffix}）`);
         }
 
         function toggleExam(id){
@@ -2478,6 +2922,23 @@
         G.filterSelect.addEventListener('change', () => render());
         function debounce(fn, wait){ let t; return (...a) => { clearTimeout(t); t = setTimeout(()=>fn(...a), wait); }; }
 
+        // Batch Operations Event Listeners
+        document.getElementById('select-all-btn').addEventListener('click', selectAllExams);
+        document.getElementById('deselect-all-btn').addEventListener('click', deselectAllExams);
+        document.getElementById('batch-edit-btn').addEventListener('click', showBatchEditModal);
+        document.getElementById('batch-delete-btn').addEventListener('click', batchDeleteExams);
+        document.getElementById('batch-add-btn').addEventListener('click', showBatchAddModal);
+        
+        // Batch Edit Modal
+        document.getElementById('batch-field-select').addEventListener('change', handleBatchFieldChange);
+        document.getElementById('batch-edit-apply').addEventListener('click', applyBatchEdit);
+        document.getElementById('batch-edit-cancel').addEventListener('click', hideBatchEditModal);
+        
+        // Batch Add Modal
+        document.getElementById('batch-add-mode').addEventListener('change', handleBatchAddModeChange);
+        document.getElementById('batch-add-apply').addEventListener('click', applyBatchAdd);
+        document.getElementById('batch-add-cancel').addEventListener('click', hideBatchAddModal);
+
         // Pomodoro
         const pom = {
             durations: { pom:25*60, short:5*60, long:15*60, manual:25*60 },
@@ -2924,8 +3385,8 @@
         function generateSchedule() {
             const { dailyCapacity, priorityMode, bufferDays, capacityMode, excludedDates, calendarCapacity } = scheduler.settings;
 
-            // Filter incomplete exams
-            const incomplete = exams.filter(e => !e.completed);
+            // Filter incomplete exams and create copies to avoid modifying original data
+            const incomplete = exams.filter(e => !e.completed).map(e => ({...e}));
             if (incomplete.length === 0) {
                 scheduler.schedule = [];
                 saveSchedule();
