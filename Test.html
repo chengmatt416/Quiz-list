@@ -1119,12 +1119,26 @@
 
         // PDF export with Traditional Chinese support
         async function exportPDF(){
-            // Check if jsPDF is available
-            if (!window.jspdf && !window.jsPDF) {
-                alert('PDF 匯出功能載入中，請稍後再試');
+            // Check if jsPDF is available - handle multiple UMD export formats
+            let jsPDF;
+            if (window.jspdf && window.jspdf.jsPDF) {
+                // UMD format from cdnjs
+                jsPDF = window.jspdf.jsPDF;
+            } else if (window.jsPDF) {
+                // Global format
+                jsPDF = window.jsPDF;
+            } else {
+                alert('PDF 匯出功能載入中，請稍後再試。請確認網路連線正常。');
+                console.error('jsPDF library not loaded properly');
                 return;
             }
-            const { jsPDF } = window.jspdf || window;
+            
+            // Check if html2canvas is available
+            if (typeof html2canvas === 'undefined') {
+                alert('PDF 匯出功能載入中，請稍後再試。請確認網路連線正常。');
+                console.error('html2canvas library not loaded properly');
+                return;
+            }
 
             // Create a temporary container for rendering
             const container = document.createElement('div');
@@ -1176,12 +1190,19 @@
 
             container.innerHTML = html;
 
+            // Show loading message
+            const originalBtnText = G.exportPdfBtn.textContent;
+            G.exportPdfBtn.textContent = '匯出中...';
+            G.exportPdfBtn.disabled = true;
+
             // Render to canvas with html2canvas (supports Chinese fonts)
             try {
                 const canvas = await html2canvas(container, {
                     scale: 2,
                     backgroundColor: '#ffffff',
-                    logging: false
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: false
                 });
 
                 // Create PDF and add the rendered image
@@ -1204,13 +1225,20 @@
                     heightLeft -= pageHeight;
                 }
 
-                doc.save('exams.pdf');
+                doc.save('考卷清單_' + new Date().toISOString().split('T')[0] + '.pdf');
+                
+                // Show success message
+                alert('PDF 匯出成功！');
             } catch (error) {
                 console.error('PDF generation error:', error);
-                alert('PDF 匯出失敗，請稍後再試');
+                alert('PDF 匯出失敗：' + error.message + '\n請確認網路連線正常，或稍後再試。');
             } finally {
                 // Clean up
                 document.body.removeChild(container);
+                
+                // Restore button state
+                G.exportPdfBtn.textContent = originalBtnText;
+                G.exportPdfBtn.disabled = false;
             }
         }
 
